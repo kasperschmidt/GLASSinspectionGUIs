@@ -28,11 +28,11 @@
 
  --- Launch GiG ---
  import visualinspection as vi
- vi.launchgui(directory='data/clusterXXXX/',outputfile='testfile_output_GiG.txt')
+ vi.launchgui(directory='data/clusterXXXX/',outputfile='testfile_output_GiG.txt',MASTfiles=True)
 
  --- Launch GiGz ---
  import visualinspection as vi
- vi.launchgui_z(directory='data/clusterXXXX/',outputfile='testfile_output_GiGz.txt')
+ vi.launchgui_z(directory='data/clusterXXXX/',outputfile='testfile_output_GiGz.txt',MASTfiles=True)
 
 """
 #-------------------------------------------------------------------------------------------------------------
@@ -40,14 +40,13 @@ __author__      = "K. B. Schmidt (UCSB)"
 __maintainer__  = "K. B. Schmidt (UCSB)"
 __email__       = "kschmidt@physics.ucsb.edu"
 __contact__     = "kschmidt@physics.ucsb.edu"
-__version__     = "1.0"
-__date__        = "February 2, 2015"
+__version__     = "2.0"
+__date__        = "June 12, 2015"
 __license__     = "The MIT License (MIT)"
 __copyright__   = "Copyright (c) 2014-2015 Kasper B. Schmidt and the GLASS collaboration"
 __credits__     = ["The GLASS Collaboration http://glass.physics.ucsb.edu/"]
 __status__      = "Production"
 #-------------------------------------------------------------------------------------------------------------
-# IMPORTING MODULES
 from Tkinter import *
 import os
 import sys
@@ -55,6 +54,7 @@ import glob
 import datetime
 import time
 import numpy as np
+import pdb
 import subprocess
 import pyfits
 import re
@@ -67,9 +67,9 @@ from PIL import ImageTk, Image
 def launchgui(directory='/Users/kasperborelloschmidt/work/GLASS/MACS0717test/vanzellaOBJ/',
               objlist=None,verbose=True,outputfile='DEFAULT',inspectorname='John Doe',
               clobber=False,ds9xpa=False,openfitsauto=False,inGUIimage='zfit',check4duplicates=False,
-              outputcheck=False):
+              outputcheck=False,skipempty=False,MASTfiles=False):
     """
-    Launch the inspection GUI
+    Launch the inspection GUI for the object inspections Application()
     """
     dir = directory
     if outputfile == 'DEFAULT':
@@ -81,19 +81,20 @@ def launchgui(directory='/Users/kasperborelloschmidt/work/GLASS/MACS0717test/van
     root = Tk()
     root.title("GLASS Inspection GUI (GiG)")
     root.geometry("1000x700") # size of GUI window
-    app = Application(dir,outfile,master=root,objlist=objlist,verbose=True,iname=inspectorname,
+    app = Application(dir,outfile,master=root,objlist=objlist,verbose=verbose,iname=inspectorname,
                       clobber=clobber,ds9xpa=ds9xpa,openfitsauto=openfitsauto,inGUIimage=inGUIimage,
-                      check4duplicates=check4duplicates,outputcheck=outputcheck)
+                      check4duplicates=check4duplicates,outputcheck=outputcheck,skipempty=skipempty,
+                      MASTfiles=MASTfiles)
     app.mainloop()
     root.destroy()
 
 #-------------------------------------------------------------------------------------------------------------
 def launchgui_z(directory='IndvidualObjects/',GiGfile=None,GiGselection='emissionlineobjects',
                 objlist=None,outputfile='DEFAULT',inspectorname='John Doe',clobber=False,
-                ds9xpa=False,openfitsauto=False,check4duplicates=False,
-                outputcheck=False,latexplotlabel=False,autosaveplot=False):
+                ds9xpa=False,openfitsauto=False,check4duplicates=False,skipempty=False,
+                outputcheck=False,latexplotlabel=False,autosaveplot=False,verbose=True,MASTfiles=False):
     """
-    Launch the inspection GUI for the redshift inspections
+    Launch the inspection GUI for the redshift inspections Application_z()
     """
     dir = directory
     if outputfile == 'DEFAULT':
@@ -104,11 +105,12 @@ def launchgui_z(directory='IndvidualObjects/',GiGfile=None,GiGselection='emissio
     # setup and launch GUI
     root = Tk()
     root.title("GLASS Inspection GUI for redshift fit (GiGz)")
-    root.geometry("1000x600") # size of GUI window
+    root.geometry("1000x630") # size of GUI window
     app = Application_z(dir,outfile,master=root,GiGfile=GiGfile,GiGselection='emissionlineobjects',
-                        objlist=objlist,verbose=True,iname=inspectorname,clobber=clobber,ds9xpa=ds9xpa,
+                        objlist=objlist,verbose=verbose,iname=inspectorname,clobber=clobber,ds9xpa=ds9xpa,
                         openfitsauto=openfitsauto,check4duplicates=check4duplicates,outputcheck=outputcheck,
-                        latexplotlabel=latexplotlabel,autosaveplot=autosaveplot)
+                        latexplotlabel=latexplotlabel,autosaveplot=autosaveplot,skipempty=skipempty,
+                        MASTfiles=MASTfiles)
     app.mainloop()
     root.destroy()
 #-------------------------------------------------------------------------------------------------------------
@@ -166,34 +168,34 @@ def getclusterz(filestring):
     Return the redshift of the cluster the object belongs to
     based on the filename.
     """
-    if 'A2744' in filestring:
+    if ('A2744' in filestring) or ('a2744' in filestring):
         redshift = 0.308
         cluster  = 'A2744'
-    elif 'A370' in filestring:
+    elif ('A370' in filestring) or ('a370' in filestring):
         redshift = 0.375
         cluster  = 'A370'
-    elif 'MACS0416.1-2403' in filestring:
+    elif ('MACS0416.1-2403' in filestring) or ('macs0416' in filestring):
         redshift = 0.396
         cluster  = 'MACS0416.1-2403'
-    elif 'MACS0717.5+3745' in filestring:
+    elif ('MACS0717.5+3745' in filestring) or ('macs0717' in filestring):
         redshift = 0.548
         cluster  = 'MACS0717.5+3745'
-    elif 'MACS0744.9+3927' in filestring:
+    elif ('MACS0744.9+3927' in filestring) or ('macs0744' in filestring):
         redshift = 0.686
         cluster  = 'MACS0744.9+3927'
-    elif 'MACS1149.6+2223' in filestring:
+    elif ('MACS1149.6+2223' in filestring) or ('macs1149' in filestring):
         redshift = 0.544
         cluster  = 'MACS1149.6+2223'
-    elif 'MACS1423.8+2404' in filestring:
+    elif ('MACS1423.8+2404' in filestring) or ('macs1423' in filestring):
         redshift = 0.545
         cluster  = 'MACS1423.8+2404'
-    elif 'MACS2129.4-0741' in filestring:
+    elif ('MACS2129.4-0741' in filestring) or ('macs2129' in filestring):
         redshift = 0.570
         cluster  = 'MACS2129.4-0741'
-    elif 'RXJ2248' in filestring: # RXJ2248-4431
+    elif ('RXJ2248' in filestring) or ('rxj2248' in filestring): # RXJ2248-4431
         redshift = 0.348
         cluster  = 'RXJ2248'
-    elif 'RXJ1347.5-1145' in filestring:
+    elif ('RXJ1347.5-1145' in filestring) or ('rxj1347' in filestring):
         redshift = 0.451
         cluster  = 'RXJ1347.5-1145'
     else:
@@ -203,15 +205,42 @@ def getclusterz(filestring):
 
     return cluster, redshift
 #-------------------------------------------------------------------------------------------------------------
+def check_idlist(idlist,dir,verbose=True):
+    """
+    Checking if pngs exist for objects in idlist.
+    Returning list of ids with existing files
+    """
+    if verbose: print ' - Checking ID list to make sure data for objects exists'
+    goodids = np.array([])
+    for objid in idlist:
+        idstr = str("%.5d" % objid)
+        pngs  = glob.glob(dir+'*_'+idstr+'*2D.png')
+        if len(pngs) > 0:
+            goodids = np.append(goodids,objid)
+
+    if (len(goodids) == 0):
+        if verbose: print ' - WARNING None of the IDs have data in dir=\n   '+dir
+
+    return goodids
+#-------------------------------------------------------------------------------------------------------------
 class Application(Frame):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     def __init__(self,dir,outfile,master=None,objlist=None,verbose=True,iname='John Doe',
                  ACSinspection=False,clobber=False,ds9xpa=False,openfitsauto=False,
-                 inGUIimage='zfit',check4duplicates=False,outputcheck=False):
+                 inGUIimage='zfit',check4duplicates=False,outputcheck=False,skipempty=False,
+                 MASTfiles=False):
         """
         Intitialize the GUI
 
         -- INPUT --
+        dir               Direcotory containing the data of the objects to inspect.
+        outfile           Name of output file to create if it doesn't exists. Use clobber to overwrite.
+        master            Provide another 'master' display. If None GUI created from scratch.
+        objlist           List of objects to inspect. If 'None' all objects in 'dir' will be
+                          inspected.
+        verbose           Toggle verbosity.
+        iname             Name of inspector to write in output file.
+        ACSinspection     If inspecting ACS objects (not enabled as of 150612).
         clobber           Overwrites the output file if it already exists
         ds9xpa            If xpa is availbale for comunicating commands to ds9
                           set this keyword to tru and this will be used instead
@@ -227,6 +256,9 @@ class Application(Frame):
                           and remove duplicate entries
         outputcheck       Checking the written output to see if it contains the expected number
                           of objects etc.
+        skipempty         Set to True to ignore unedited objects when writing to output file.
+                          Hence, if skipempty = True objects with no comments, flags set or sliders changed
+                          will be written to the output
         """
         pp    = subprocess.Popen('ds9 -version',shell=True,executable=os.environ["SHELL"],stdout=subprocess.PIPE)
         ppout = pp.communicate()[0]
@@ -244,7 +276,10 @@ class Application(Frame):
         self.duplicates = check4duplicates
         self.fitsauto   = openfitsauto # Open fits files automatically?
         self.outcheck   = outputcheck
+        self.skipempty  = skipempty
+        self.MASTfiles  = MASTfiles
         if self.xpa:
+            #sys.exit(' - XPA DS9 controls not enabled yet; still under construction (use ds9xpa=False)')
             self.ds9windowopen = False
 
         if os.path.exists(self.dir):
@@ -254,19 +289,45 @@ class Application(Frame):
 
         # -------- GET OBJIDS --------
         if objlist == None:
-            self.file_2Dpng = [f for f in glob.glob(self.dir+'*G102*2D.png') if 'zfit' not in f]
-            self.objlist    = np.asarray([int(self.file_2Dpng[jj][-17:-12]) for jj in xrange(len(self.file_2Dpng))])
+            if self.MASTfiles:
+                searchext = '_2d.png'
+                cutent    = [-28,-23]
+            else:
+                searchext = '.2D.png'
+                cutent    = [-17,-12]
+
+            self.file_2Dpng = [f for f in glob.glob(self.dir+'*'+searchext) if 'zfit' not in f]
+            self.objlist    = np.asarray([int(self.file_2Dpng[jj][cutent[0]:cutent[1]])
+                                          for jj in xrange(len(self.file_2Dpng))])
             self.objlist    = np.unique(self.objlist)
         else:
-            self.objlist = np.asarray(objlist)
+            if type(objlist) == str:
+                self.objlist = np.genfromtxt(objlist,dtype=None,comments='#')
+            else:
+                self.objlist = np.asarray(objlist)
+
+            self.objlist = vi.check_idlist(self.objlist,self.dir,verbose=self.vb) # check objects exist in dir
+
+        if len(self.objlist) == 0:
+            sys.exit(' No valid IDs found (running on MAST files? Then use MASTfiles = True)')
+
         self.currentobj = self.objlist[0]                    # set the first id to look at
         if verbose: print " - Found "+str(len(self.objlist))+' objects to inspect'
+        # -------- Get version of MAST data release (assuming all the same) --------
+        if self.MASTfiles:
+            self.MASTversion = glob.glob(self.dir+'*_2d.png')[0][-11:-7]
+        else:
+            self.MASTversion = 'None'
 
         # -------- COUNT PAs FOR ALL IDs --------
         allPAs = []
         for id in self.objlist:
             idstr  = str("%05d" % id)
-            PAobj  = len(glob.glob(self.dir+'*'+idstr+'*1D.png'))/2. # divide by two to account for grisms
+            if self.MASTfiles:
+                searchext = '_1d.png'
+            else:
+                searchext = '1D.png'
+            PAobj  = len(glob.glob(self.dir+'*'+idstr+'*'+searchext))/2. # divide by two to account for grisms
             allPAs.append(PAobj)
         self.Npamax = np.max(allPAs)
         if verbose: print ' - The maximum number of PAs in the objlist was ',self.Npamax
@@ -290,6 +351,8 @@ class Application(Frame):
                 lsplit = line.split()
                 if lsplit[0] != '#':
                     IDinspected = np.append(IDinspected,float(lsplit[0]))
+            if len(IDinspected) == 0:
+                sys.exit('Found no inspected objects in '+outfile)
             lastline = line
             self.fout.close()
 
@@ -380,9 +443,13 @@ class Application(Frame):
         self.wavefieldG102_2([self.cbpos2[0]+0,2,1])
         self.wavefieldG141_2([self.cbpos2[0]+1,2,1])
 
+
         position = [65,0,3]
+        #textdisp = " GXXX_zfit_quality:  0: No z-fit,  1: Junk zgrim,  " \
+        #           "2: Possible zgrim,  3: Probable zgrism,  4: Secure zgrim"
         textdisp = " GXXX_*_Contamination:  MILD: < 10%,  MODERATE: 10% - 40%,  " \
                    "SEVERE: > 40%"
+
 
         label    = StringVar()
         txtlab   = Label(self,textvariable=label)
@@ -715,7 +782,7 @@ class Application(Frame):
         else:
             id = objid
         idstr     = str("%05d" % id)
-        self.pngs = glob.glob(self.dir+'*'+idstr+'*.png')
+        self.pngs = glob.glob(self.dir+'*'+idstr+'*.png')+glob.glob(self.dir+'*'+idstr+'*.pdf')
         if len(self.pngs) == 0:
             sys.exit(' - Did not find any png files to open. Looked for '+
                      self.dir+'*'+idstr+'*.png  --> ABORTING')
@@ -723,15 +790,25 @@ class Application(Frame):
         self.file = self.pngs[0].split('/')[-1]
 
         # order the pngs to display
-        G102_1D = [name for name in self.pngs if "G102.1D.png" in name]
-        G102_2D = [name for name in self.pngs if "G102.2D.png" in name]
-        G141_1D = [name for name in self.pngs if "G141.1D.png" in name]
-        G141_2D = [name for name in self.pngs if "G141.2D.png" in name]
-        G800_1D = [name for name in self.pngs if "G800L.1D.png" in name]
-        G800_2D = [name for name in self.pngs if "G800L.2D.png" in name]
+        if self.MASTfiles:
+            G102_1D = [name for name in self.pngs if "g102_"+self.MASTversion+"_1d.png" in name]
+            G102_2D = [name for name in self.pngs if "g102_"+self.MASTversion+"_2d.png" in name]
+            G141_1D = [name for name in self.pngs if "g141_"+self.MASTversion+"_1d.png" in name]
+            G141_2D = [name for name in self.pngs if "g141_"+self.MASTversion+"_2d.png" in name]
+            G800_1D = [name for name in self.pngs if "g800l_"+self.MASTversion+"_1d.png" in name]
+            G800_2D = [name for name in self.pngs if "g800l_"+self.MASTversion+"_2d.png" in name]
+        else:
+            G102_1D = [name for name in self.pngs if "G102.1D.png" in name]
+            G102_2D = [name for name in self.pngs if "G102.2D.png" in name]
+            G141_1D = [name for name in self.pngs if "G141.1D.png" in name]
+            G141_2D = [name for name in self.pngs if "G141.2D.png" in name]
+            G800_1D = [name for name in self.pngs if "G800L.1D.png" in name]
+            G800_2D = [name for name in self.pngs if "G800L.2D.png" in name]
+
         zfit    = [name for name in self.pngs if "zfit" in name]
         stack   = [name for name in self.pngs if "stack" in name]
-        pngorderedlist = G102_1D + G102_2D + G141_1D + G141_2D + G800_1D + G800_2D + zfit + stack
+        mosaic  = [name for name in self.pngs if "mosaic" in name]
+        pngorderedlist = G102_1D + G102_2D + G141_1D + G141_2D + G800_1D + G800_2D + zfit + stack + mosaic
         remaining      = list(set(self.pngs) - set(pngorderedlist)) # get files not accounted for above
         pngorderedlist = pngorderedlist #+ remaining
 
@@ -751,24 +828,33 @@ class Application(Frame):
         for png in self.pngs:
             if (self.inGUIimage == 'zfit') & ('zfitplot.png' in png):
                 self.GUIimage  = png
-            if (self.inGUIimage == 'G102stack') & ('G102_stack.png' in png):
+            if (self.inGUIimage == 'G102stack') & \
+                    (('G102_stack.png' in png) or ('g102_'+self.MASTversion+'_2dstack.png' in png)):
                 self.GUIimage  = png
-            if (self.inGUIimage == 'G141stack') & ('G141_stack.png' in png):
+            if (self.inGUIimage == 'G141stack') & \
+                    (('G141_stack.png' in png) or ('g141_'+self.MASTversion+'_2dstack.png' in png)):
                 self.GUIimage  = png
         if self.GUIimage == None:  # if requested image not found for object use first png figure instead
             self.GUIimage = pngorderedlist[0]
 
         # Getting number of PAs for current object
-        twodpng    = glob.glob(self.dir+'*'+idstr+'*G102.2D.png')
-        self.Npa = len(twodpng)
-        self.PAs = np.zeros(self.Npa)
-        for ii in xrange(self.Npa):
-            namesplit = os.path.basename(twodpng[ii]).split('-')
-            self.PAs[ii] = int(namesplit[1])
-            if namesplit[0] in ['MACS0416.1','MACS2129.4','RXJ1347.5']: # case of names with negative dec
-                self.PAs[ii] = int(namesplit[2])
-        self.PAs = np.sort(self.PAs) # Make sure the PAs are sorted
-
+        if self.MASTfiles:
+            searchext = '_1d.png'
+        else:
+            searchext = '.1D.png'
+        twodpng    = glob.glob(self.dir+'*'+idstr+'*'+searchext)
+        self.PAs = np.zeros(len(twodpng))
+        for ii in xrange(len(self.PAs)):
+            if self.MASTfiles:
+                namesplit = os.path.basename(twodpng[ii]).split('-pa')
+                self.PAs[ii] = namesplit[-1][:3]
+            else:
+                namesplit = os.path.basename(twodpng[ii]).split('-')
+                self.PAs[ii] = int(namesplit[1])
+                if namesplit[0] in ['MACS0416.1','MACS2129.4','RXJ1347.5']: # case of names with negative dec
+                    self.PAs[ii] = int(namesplit[2])
+        self.PAs  = np.sort(np.unique(self.PAs)) # Make sure the PAs are sorted
+        self.Npa  = len(self.PAs)
         self.pPNG = subprocess.Popen(opencmd,shell=True,executable=os.environ["SHELL"])
         time.sleep(1.1)# sleep to make sure png appear in PIDlist
         if self.plat == 'darwin':
@@ -813,7 +899,12 @@ class Application(Frame):
         Fstart = 1
         for PA in self.PAs:
             PAstr = '-'+str("%03d" % int(PA))+'-'
-            fits_2D = glob.glob(self.dir+'*'+PAstr+'*'+idstr+'*2D.fits')
+            if self.MASTfiles:
+                searchexpression = self.dir+'*'+idstr+'*-pa'+PAstr[1:-1]+'_*2d.fits'
+            else:
+                searchexpression = self.dir+'*'+PAstr+'*'+idstr+'*2D.fits'
+            fits_2D = glob.glob(searchexpression)
+
             for ii in xrange(len(fits_2D)):
                 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                 out = commands.getoutput('xpaset -p ds9 frame '+str(Fstart))
@@ -866,7 +957,11 @@ class Application(Frame):
         ds9cmd  = 'ds9 -geometry 1200x600 -scale zscale '+lockstr+' -tile grid layout 4 '+str(2*int(self.Npa))
         for PA in self.PAs:
             PAstr = '-'+str("%03d" % int(PA))+'-'
-            fits_2D = glob.glob(self.dir+'*'+PAstr+'*'+idstr+'*2D.fits')
+            if self.MASTfiles:
+                searchext = '2d.fits'
+            else:
+                searchext = '2D.fits'
+            fits_2D = glob.glob(self.dir+'*'+PAstr+'*'+idstr+'*'+searchext)
             for ii in xrange(len(fits_2D)):
                 regionfile = self.regiontemp.replace('.reg',PAstr+'DSCI.reg')
                 self.ds9textregion('DSCI PA='+str(int(PA)),filename=regionfile)
@@ -970,7 +1065,7 @@ class Application(Frame):
         resultstr  = resultstr+'  #C# '+self.comments.get()+' \n'
 
         skipin = skip # storing original skip value
-        if resultstr == defaultstr: skip = True
+        if (resultstr == defaultstr) & (self.skipempty == True): skip = True
         if not skip:
             if self.duplicates:
                 Ndup = self.removeoutputduplicate(self.currentobj,self.PAs[0])
@@ -1026,7 +1121,7 @@ class Application(Frame):
             resultstr = resultstr+'  #G141wave# '+self.linewaveG141_2.get()
             resultstr = resultstr+'  #C# '+self.comments2.get()+' \n'
 
-            if resultstr == defaultstr: skip = True
+            if (resultstr == defaultstr) & (self.skipempty == True): skip = True
             if not skip:
                 if self.duplicates:
                     Ndup = self.removeoutputduplicate(self.currentobj,self.PAs[1])
@@ -1140,6 +1235,7 @@ class Application(Frame):
         for f in file2D:
             hduimg      = pyfits.open(f) # Load the FITS hdulist
             model       = hduimg[6].data
+            #scimodel    = hduimg[4].data[model != 0]
             contammodel = hduimg[7].data[model != 0]
 
             Nbad        = float(len(contammodel[np.abs(contammodel) > cut]) )
@@ -1286,7 +1382,7 @@ class Application(Frame):
         """
         Command for quit button
         """
-        self.reset()
+        if self.quitting == False: self.reset() # Only reset if quit_but_cmd was activated by quit button
         self.quitting = True
         self.fout.close()
         self.closewindows()
@@ -1338,7 +1434,6 @@ class Application(Frame):
             (focuson == self.linewaveG102_2) or (focuson == self.linewaveG141_2):
             pass
         else:
-            #if self.vb: print '   Keyboard shortcut: ',cmd
             keycmd    = []
             keynames  = []
             keynumber = []
@@ -1423,18 +1518,36 @@ class Application_z(Frame):
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     def __init__(self,dir,outfile,master=None,GiGfile=None,GiGselection='emissionlineobjects',
                  objlist=None,verbose=True,iname='John Doe',latexplotlabel=False,
-                 ACSinspection=False,clobber=False,ds9xpa=False,openfitsauto=False,
-                 inGUIimage='zfit',check4duplicates=False,outputcheck=False,autosaveplot=False):
+                 ACSinspection=False,clobber=False,ds9xpa=False,openfitsauto=False,skipempty=False,
+                 inGUIimage='zfit',check4duplicates=False,outputcheck=False,autosaveplot=False,
+                 MASTfiles=False):
         """
         Intitialize the GUI for redshift fit
 
         -- INPUT --
+        dir               Direcotory containing the data of the objects to inspect.
+        outfile           Name of output file to create if it doesn't exists. Use clobber to overwrite.
+        master            Provide another 'master' display. If None GUI created from scratch.
+        GiGfile           File name of GiG inspectionn output if available. Will enable displaying
+                          emission lines noted in the GiG output on the interactive plot as well as
+                          selecting objects based on inspections.
+        GiGselection      The selection to apply to the GiG catalog prioir to performing inspection.
+                          Only objects satisfying the GiGselection will be inspected.
+        objlist           List of objects to inspect. If 'None' all objects in 'dir' will be
+                          inspected.
+        verbose           Toggle verbosity.
+        iname             Name of inspector to write in output file.
+        latexplotlabel    Render plotting lables with latex; requires latex compiler.
+        ACSinspection     If inspecting ACS objects (not enabled as of 150423).
         clobber           Overwrites the output file if it already exists
         ds9xpa            If xpa is availbale for comunicating commands to ds9
                           set this keyword to tru and this will be used instead
                           of opening ds9 everytime the fits files are requested.
         openfitsauto      Automatically load the fits files into the DS9 window
                           when advancing to next (or previous) object.
+        skipempty         Set to True to ignore unedited objects when writing to output file.
+                          Hence, if skipempty = True objects with no comments, flags set or sliders changed
+                          will be written to the output
         inGUIimage        Select what image to display in GUI window (if available)
                           Choices are:
                           'zfit'       The redshift fit output plot (default)
@@ -1465,7 +1578,10 @@ class Application_z(Frame):
         self.GiGf          = GiGfile
         self.latex         = latexplotlabel
         self.autosaveplot  = autosaveplot
+        self.skipempty     = skipempty
+        self.MASTfiles     = MASTfiles
         if self.xpa:
+            #sys.exit(' - XPA DS9 controls not enabled yet; still under construction (use ds9xpa=False)')
             self.ds9windowopen = False
 
         if os.path.exists(self.dir):
@@ -1487,20 +1603,44 @@ class Application_z(Frame):
             if self.GiGf != None:
                 self.objlist = self.GiGobjID
             else:
-                self.file_2Dpng = [f for f in glob.glob(self.dir+'*G102*2D.png') if 'zfit' not in f]
-                self.objlist    = np.asarray([int(self.file_2Dpng[jj][-17:-12])
+                if self.MASTfiles:
+                    searchext = '_2d.png'
+                    cutent    = [-28,-23]
+                else:
+                    searchext = '.2D.png'
+                    cutent    = [-17,-12]
+
+                self.file_2Dpng = [f for f in glob.glob(self.dir+'*'+searchext) if 'zfit' not in f]
+                self.objlist    = np.asarray([int(self.file_2Dpng[jj][cutent[0]:cutent[1]])
                                               for jj in xrange(len(self.file_2Dpng))])
                 self.objlist    = np.unique(self.objlist)
         else:
-            self.objlist = np.asarray(objlist)
+            if type(objlist) == str:
+                self.objlist = np.genfromtxt(objlist,dtype=None,comments='#')
+            else:
+                self.objlist = np.asarray(objlist)
+
+            self.objlist = vi.check_idlist(self.objlist,self.dir,verbose=self.vb) # check objects exist in dir
+
+        if len(self.objlist) == 0:
+            sys.exit(' No valid IDs found (running on MAST files? Then use MASTfiles = True)')
+
         self.currentobj = self.objlist[0]                    # set the first id to look at
         if verbose: print " - Found "+str(len(self.objlist))+' objects to inspect'
-
+        # -------- Get version of MAST data release (assuming all the same) --------
+        if self.MASTfiles:
+            self.MASTversion = glob.glob(self.dir+'*_2d.png')[0][-11:-7]
+        else:
+            self.MASTversion = 'None'
         # -------- COUNT PAs FOR ALL IDs --------
         allPAs = []
         for id in self.objlist:
             idstr  = str("%05d" % id)
-            PAobj  = len(glob.glob(self.dir+'*'+idstr+'*1D.png'))/2. # divide by two to account for grisms
+            if self.MASTfiles:
+                searchext = '_1d.png'
+            else:
+                searchext = '1D.png'
+            PAobj  = len(glob.glob(self.dir+'*'+idstr+'*'+searchext))/2. # divide by two to account for grisms
             allPAs.append(PAobj)
         self.Npamax = np.max(allPAs)
         if verbose: print ' - The maximum number of PAs in the objlist was ',self.Npamax
@@ -1524,6 +1664,8 @@ class Application_z(Frame):
                 lsplit = line.split()
                 if lsplit[0] != '#':
                     IDinspected = np.append(IDinspected,float(lsplit[0]))
+            if len(IDinspected) == 0:
+                sys.exit('Found no inspected objects in '+outfile)
             lastline = line
             self.fout.close()
 
@@ -1621,8 +1763,8 @@ class Application_z(Frame):
         self.commentfield2([self.cbpos2[0]+5,2,1])
 
         position = [65,0,3]
-        textdisp = " G***_zfit_quality:      0: No zfit      1: Junk zfit      2: Possible zfit" \
-                   "      3: Probable zfit      4: Secure zfit"
+        textdisp = " G***_zfit_quality:      0: No zfit/uninformative   1: Junk zfit   2: Possible zfit" \
+                   "   3: Probable zfit   4: Secure zfit"
         label    = StringVar()
         txtlab   = Label(self,textvariable=label)
         label.set(textdisp)
@@ -1952,6 +2094,7 @@ class Application_z(Frame):
         self.dataPlot_savebutton([rowval+2,3,1])
 
         self.DPxlow, self.DPxhigh, self.DPylow, self.DPyhigh = self.dataPlot_getwindowinfo() # store window
+        # self.dataPlotManager.destroy()
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     def dataPlot_redrawbutton(self,position):
         """
@@ -2010,12 +2153,20 @@ class Application_z(Frame):
 
         """
         self.DPidstr    = str("%.5d" % self.currentobj)
-        fits1Dfound     = glob.glob(self.dir+'*'+self.DPidstr+'*1D.fits')
+        if self.MASTfiles:
+            searchext = '1d.fits'
+        else:
+            searchext = '1D.fits'
+        fits1Dfound     = glob.glob(self.dir+'*'+self.DPidstr+'*'+searchext)
         self.DPfits1D   = []
         self.DPPAs      = []
         for f1D in fits1Dfound:
             try:
-                self.DPPAs.append(re.search(r'(-...-)', f1D).group()[1:4])
+                if self.MASTfiles:
+                    self.DPPAs.append(re.search(r'(-pa..._)', f1D).group()[3:6])
+                else:
+                    self.DPPAs.append(re.search(r'(-...-)', f1D).group()[1:4])
+
                 self.DPfits1D.append(f1D)
             except:
                 pass
@@ -2034,14 +2185,18 @@ class Application_z(Frame):
                 with open(eazydicfile, 'rb') as handle:
                     self.eazydic = pickle.load(handle)
 
-                if verbose: print ' - Loaded dictionary in ',eazydicfile
-                keys     = self.eazydic.keys()
-                for key in keys:
-                    if key.endswith('2D.fits'):
-                        eazykey = key
+                if verbose: print ' - Attempt to load dictionary in ',eazydicfile
+                try:
+                    keys     = self.eazydic.keys()
+                    for key in keys:
+                        if key.endswith('2D.fits'):
+                            eazykey = key
 
-                if verbose: print ' - Loading EAZY photo-z info from key ',eazykey
-                lambdaz, temp_sed, lci, obs_sed, fobs, efobs = self.eazydic[eazykey]
+                    if verbose: print ' - Loading EAZY photo-z info from key ',eazykey
+                    lambdaz, temp_sed, lci, obs_sed, fobs, efobs = self.eazydic[eazykey]
+                    self.goodzfitload = True
+                except:
+                    self.goodzfitload = False
 
                 if verbose: print ' - Loading results from zfit (in *zfit.dat)'
                 self.zfitdataALL = []
@@ -2057,6 +2212,8 @@ class Application_z(Frame):
                 self.eazydicexists = True
             else:
                 if verbose: print ' No EAZY dictionary found when looking for ',eazydicfile
+        else:
+            self.goodzfitload = False
     # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
     def dataPlot_plot(self,verbose=False,refresh=False,newobj=False,fullzoom=False):
         """
@@ -2104,29 +2261,31 @@ class Application_z(Frame):
 
         for ii in range(self.DPNfiles):
             dat1D   = pyfits.open(self.DPfits1D[ii])[1].data
-            if 'G102' in self.DPfits1D[ii]:
+            if ('G102' in self.DPfits1D[ii]) or ('g102' in self.DPfits1D[ii]):
                 goodent = np.where((dat1D['WAVE'] > self.DPg102range_full[0]) &
                                    (dat1D['WAVE'] < self.DPg102range_full[1]))[0]
                 color   = self.DPg102col[0]
                 if len(self.DPPAs) == 2:
                     if '-'+self.DPPAs[1]+'-' in self.DPfits1D[ii]: color = self.DPg102col[1] # second PA color
-            elif 'G141' in self.DPfits1D[ii]:
+            elif ('G141' in self.DPfits1D[ii]) or 'g141' in self.DPfits1D[ii]:
                 goodent = np.where((dat1D['WAVE'] > self.DPg141range_full[0]) &
                                    (dat1D['WAVE'] < self.DPg141range_full[1]))[0]
                 color   = self.DPg141col[0]
                 if len(self.DPPAs) == 2:
                     if '-'+self.DPPAs[1]+'-' in self.DPfits1D[ii]: color = self.DPg141col[1] # second PA color
 
+
             wave1D = dat1D['WAVE'][goodent]/self.DPxscale
-            flux1D = (dat1D['FLUX'][goodent] - dat1D['CONTAM'][goodent])/dat1D['SENSITIVITY'][goodent]/10.
+            flux1D = (dat1D['FLUX'][goodent] - dat1D['CONTAM'][goodent])/dat1D['SENSITIVITY'][goodent]
 
             if len(flux1D) >= 1:
                 self.dataPlot_ax.plot(wave1D, flux1D, color=color,linestyle='-',
                                       linewidth=self.DPlwidth*1.5, alpha=0.2)
-                ymax.append(np.max(flux1D[(dat1D['WAVE'] > self.DPg102range_cut[0]) &
-                                          (dat1D['WAVE'] < self.DPg102range_cut[1])]))
-                ymin.append(np.min(flux1D[(dat1D['WAVE'] > self.DPg102range_cut[0]) &
-                                          (dat1D['WAVE'] < self.DPg102range_cut[1])]))
+
+                ymax.append(np.max(dat1D['FLUX'][(dat1D['WAVE'] > self.DPg102range_cut[0]) &
+                                                 (dat1D['WAVE'] < self.DPg102range_cut[1])]))
+                ymin.append(np.min(dat1D['FLUX'][(dat1D['WAVE'] > self.DPg102range_cut[0]) &
+                                                 (dat1D['WAVE'] < self.DPg102range_cut[1])]))
 
                 # Smoothed versions
                 filtersigma   = smoothlevel
@@ -2138,13 +2297,13 @@ class Application_z(Frame):
                 dfrange = np.max(flux1D)-np.min(flux1D)
 
                 # ======= Plotting the GiG catalog lines if any there for object =======
-                if (self.GiGf != None) & (self.GiGlinesboxvar.get() == '1'):
+                if (self.GiGf != None) & (self.GiGlinesboxvar.get() != '0'):
                     objPA = float(self.DPPAs[0])
                     if (len(self.DPPAs) == 2):
                         if ('-'+self.DPPAs[1]+'-' in self.DPfits1D[ii]): # 2nd PA
                             objPA = float(self.DPPAs[1])
 
-                    if 'G102' in self.DPfits1D[ii]:
+                    if ('G102' in self.DPfits1D[ii]) or ('g102' in self.DPfits1D[ii]):
                         ents = np.where((self.GiGdata['ID'] == self.currentobj) &
                                         (self.GiGdata['PA'] == objPA) ) # first PA match
 
@@ -2177,7 +2336,7 @@ class Application_z(Frame):
 
 
 
-                    if 'G141' in self.DPfits1D[ii]:
+                    if ('G141' in self.DPfits1D[ii]) or ('g141' in self.DPfits1D[ii]):
                         ents = np.where((self.GiGdata['ID'] == self.currentobj) &
                                         (self.GiGdata['PA'] == objPA) ) # first PA match
 
@@ -2209,35 +2368,41 @@ class Application_z(Frame):
                             if verbose: print ' - No entry for',self.currentobj,'at PA =',objPA,'in GiG catalog'
 
             # ======= Plot zfit models on top of spectra =======
-            if self.eazydicexists & (self.modelboxvar.get() == '0'):
+            if self.eazydicexists & (self.modelboxvar.get() == '0') & (self.goodzfitload == True):
                 # plot wavelength solutions for zfit
                 ent = np.where(self.zfitdataALL['f0'] == self.DPfits1D[ii].split('/')[-1].split('.1D.')[0])
-                zfitredshift = self.zfitdataALL['f6'][ent]
-                for ll in range(len(linelist)):
-                    self.dataPlot_ax.plot(np.zeros(2)+linelist[ll]/self.DPxscale*(zfitredshift+1.0),
-                                          frange,color=color,alpha=0.6,
-                                          linestyle='--',linewidth=self.DPlwidth)
-                    textpos = linelist[ll]/self.DPxscale*(zfitredshift+1.0)
+                if len(ent[0]) == 0:
+                    pass
+                else:
+                    zfitredshift = self.zfitdataALL['f6'][ent]
+                    for ll in range(len(linelist)):
+                        try:
+                            self.dataPlot_ax.plot(np.zeros(2)+linelist[ll]/self.DPxscale*(zfitredshift+1.0),
+                                                  frange,color=color,alpha=0.6,
+                                                  linestyle='--',linewidth=self.DPlwidth)
+                            textpos = linelist[ll]/self.DPxscale*(zfitredshift+1.0)
+                        except:
+                            pdb.set_trace()
 
-                    if (textpos > xrangeflam[0]) & (textpos < xrangeflam[1]):
-                        self.dataPlot_ax.text(textpos,frange[0]+dfrange*0.05,
-                                              linename[ll],color=color,size=self.DPFsize-3.,
-                                              rotation='vertical',horizontalalignment='right',
-                                              verticalalignment='bottom',alpha=0.6)
+                        if (textpos > xrangeflam[0]) & (textpos < xrangeflam[1]):
+                            self.dataPlot_ax.text(textpos,frange[0]+dfrange*0.05,
+                                                  linename[ll],color=color,size=self.DPFsize-3.,
+                                                  rotation='vertical',horizontalalignment='right',
+                                                  verticalalignment='bottom',alpha=0.6)
 
-                # plot model for given redshift
-                oned_wave = self.eazydic[self.DPfits1D[ii].split('/')[-1].replace('.1D.','.2D.')+'_oned_wave']
-                model_1D  = self.eazydic[self.DPfits1D[ii].split('/')[-1].replace('.1D.','.2D.')+'_model_1D']/\
-                            dat1D['SENSITIVITY']/10.
-                if oned_wave[0] != -99:
-                    self.dataPlot_ax.plot(oned_wave[goodent]/self.DPxscale, model_1D[goodent],
-                                          color='white',linestyle='-',
-                                          linewidth=self.DPlwidth*2,alpha=1.0,zorder=50+ii,)
+                    # plot model for given redshift
+                    oned_wave = self.eazydic[self.DPfits1D[ii].split('/')[-1].replace('.1D.','.2D.')+'_oned_wave']
+                    model_1D  = self.eazydic[self.DPfits1D[ii].split('/')[-1].replace('.1D.','.2D.')+'_model_1D']/\
+                                dat1D['SENSITIVITY']
+                    if oned_wave[0] != -99:
+                        self.dataPlot_ax.plot(oned_wave[goodent]/self.DPxscale, model_1D[goodent],
+                                              color='white',linestyle='-',
+                                              linewidth=self.DPlwidth*2,alpha=1.0,zorder=50+ii,)
 
-                    self.dataPlot_ax.plot(oned_wave[goodent]/self.DPxscale, model_1D[goodent],
-                                          color=color,linestyle='-',
-                                          linewidth=self.DPlwidth,alpha=1.0,zorder=50+ii,
-                                          label='zfit model (zfit='+str("%.3f" % zfitredshift)+')')
+                        self.dataPlot_ax.plot(oned_wave[goodent]/self.DPxscale, model_1D[goodent],
+                                              color=color,linestyle='-',
+                                              linewidth=self.DPlwidth,alpha=1.0,zorder=50+ii,
+                                              label='zfit model (zfit='+str("%.3f" % zfitredshift)+')')
 
             if self.eazydicexists & (self.modelboxvar.get() == '1'): # add legend if no models shown
                 ent = np.where(self.zfitdataALL['f0'] == self.DPfits1D[ii].split('/')[-1].split('.1D.')[0])
@@ -2267,10 +2432,10 @@ class Application_z(Frame):
 
         if self.latex:
             xlab = '$\lambda / [\mu\mathrm{m}]$'
-            ylab = '$f_\lambda / [10^{-18}\mathrm{erg}/\mathrm{s}/\mathrm{cm}^2/\mathrm{\AA}]$'
+            ylab = '$f_\lambda / [10^{-17}\mathrm{erg}/\mathrm{s}/\mathrm{cm}^2/\mathrm{\AA}]$'
         else:
             xlab = 'lambda / [micron]'
-            ylab = 'f_lambda / [10**-18/erg/s/cm2/A]'
+            ylab = 'f_lambda / [10**-17/erg/s/cm2/A]'
 
         self.dataPlot_ax.set_xlabel(xlab)
         self.dataPlot_ax.set_ylabel(ylab)
@@ -2298,11 +2463,12 @@ class Application_z(Frame):
             self.dataPlot_ax.plot(0,0,'cyan',label='G102 PA='+self.DPPAs[1],linewidth=self.DPlwidth*2)
             self.dataPlot_ax.plot(0,0,'magenta',label='G141 PA='+self.DPPAs[1],linewidth=self.DPlwidth*2)
         self.dataPlot_ax.plot(0,0,'green',label='Lines at z='+str("%.3f" % redshift),linewidth=self.DPlwidth*2)
-        if (self.GiGf != None) & (self.GiGlinesboxvar.get() == '1'):
+        if (self.GiGf != None) & (self.GiGlinesboxvar.get() != '0'):
             self.dataPlot_ax.plot(0,0,label='GiG marked lines',marker='o',markerfacecolor='white',linestyle='',
                                   markeredgecolor='black',markeredgewidth=self.DPlwidth/1.5,markersize=8)
         leg = self.dataPlot_ax.legend(fancybox=True, loc='upper center',numpoints=1,prop={'size':self.DPFsize-3.},
                                       ncol=5,bbox_to_anchor=(0.5, 1.27))
+        #leg.get_frame().set_alpha(0.7)
 
         self.dataPlotManager.canvas.draw()
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2344,7 +2510,7 @@ class Application_z(Frame):
         else:
             id = objid
         idstr     = str("%05d" % id)
-        self.pngs = glob.glob(self.dir+'*'+idstr+'*.png')
+        self.pngs = glob.glob(self.dir+'*'+idstr+'*.png')+glob.glob(self.dir+'*'+idstr+'*.pdf')
         if len(self.pngs) == 0:
             sys.exit(' - Did not find any png files to open. Looked for '+
                      self.dir+'*'+idstr+'*.png  --> ABORTING')
@@ -2360,7 +2526,8 @@ class Application_z(Frame):
         G800_2D = [name for name in self.pngs if "G800L.2D.png" in name]
         zfit    = [name for name in self.pngs if "zfit" in name]
         stack   = [name for name in self.pngs if "stack" in name]
-        pngorderedlist = G102_1D + G102_2D + G141_1D + G141_2D + G800_1D + G800_2D + zfit + stack
+        mosaic  = [name for name in self.pngs if "mosaic" in name]
+        pngorderedlist = G102_1D + G102_2D + G141_1D + G141_2D + G800_1D + G800_2D + zfit + stack + mosaic
         remaining      = list(set(self.pngs) - set(pngorderedlist)) # get files not accounted for above
         pngorderedlist = pngorderedlist #+ remaining
 
@@ -2380,24 +2547,33 @@ class Application_z(Frame):
         for png in self.pngs:
             if (self.inGUIimage == 'zfit') & ('zfitplot.png' in png):
                 self.GUIimage  = png
-            if (self.inGUIimage == 'G102stack') & ('G102_stack.png' in png):
+            if (self.inGUIimage == 'G102stack') & \
+                    (('G102_stack.png' in png) or ('g102_'+self.MASTversion+'_2dstack.png' in png)):
                 self.GUIimage  = png
-            if (self.inGUIimage == 'G141stack') & ('G141_stack.png' in png):
+            if (self.inGUIimage == 'G141stack') & \
+                    (('G141_stack.png' in png) or ('g141_'+self.MASTversion+'_2dstack.png' in png)):
                 self.GUIimage  = png
         if self.GUIimage == None:  # if requested image not found for object use first png figure instead
             self.GUIimage = pngorderedlist[0]
 
         # Getting number of PAs for current object
-        twodpng    = glob.glob(self.dir+'*'+idstr+'*G102.2D.png')
-        self.Npa = len(twodpng)
-        self.PAs = np.zeros(self.Npa)
-        for ii in xrange(self.Npa):
-            namesplit = os.path.basename(twodpng[ii]).split('-')
-            self.PAs[ii] = int(namesplit[1])
-            if namesplit[0] in ['MACS0416.1','MACS2129.4','RXJ1347.5']: # case of names with negative dec
-                self.PAs[ii] = int(namesplit[2])
-        self.PAs = np.sort(self.PAs) # Make sure the PAs are sorted
-
+        if self.MASTfiles:
+            searchext = '_1d.png'
+        else:
+            searchext = '.1D.png'
+        twodpng    = glob.glob(self.dir+'*'+idstr+'*'+searchext)
+        self.PAs = np.zeros(len(twodpng))
+        for ii in xrange(len(self.PAs)):
+            if self.MASTfiles:
+                namesplit = os.path.basename(twodpng[ii]).split('-pa')
+                self.PAs[ii] = namesplit[-1][:3]
+            else:
+                namesplit = os.path.basename(twodpng[ii]).split('-')
+                self.PAs[ii] = int(namesplit[1])
+                if namesplit[0] in ['MACS0416.1','MACS2129.4','RXJ1347.5']: # case of names with negative dec
+                    self.PAs[ii] = int(namesplit[2])
+        self.PAs  = np.sort(np.unique(self.PAs)) # Make sure the PAs are sorted
+        self.Npa  = len(self.PAs)
         self.pPNG = subprocess.Popen(opencmd,shell=True,executable=os.environ["SHELL"])
         time.sleep(1.1)# sleep to make sure png appear in PIDlist
         if self.plat == 'darwin':
@@ -2442,7 +2618,12 @@ class Application_z(Frame):
         Fstart = 1
         for PA in self.PAs:
             PAstr = '-'+str("%03d" % int(PA))+'-'
-            fits_2D = glob.glob(self.dir+'*'+PAstr+'*'+idstr+'*2D.fits')
+            if self.MASTfiles:
+                searchexpression = self.dir+'*'+idstr+'*-pa'+PAstr[1:-1]+'_*2d.fits'
+            else:
+                searchexpression = self.dir+'*'+PAstr+'*'+idstr+'*2D.fits'
+            fits_2D = glob.glob(searchexpression)
+
             for ii in xrange(len(fits_2D)):
                 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
                 out = commands.getoutput('xpaset -p ds9 frame '+str(Fstart))
@@ -2495,7 +2676,11 @@ class Application_z(Frame):
         ds9cmd  = 'ds9 -geometry 1200x600 -scale zscale '+lockstr+' -tile grid layout 4 '+str(2*int(self.Npa))
         for PA in self.PAs:
             PAstr = '-'+str("%03d" % int(PA))+'-'
-            fits_2D = glob.glob(self.dir+'*'+PAstr+'*'+idstr+'*2D.fits')
+            if self.MASTfiles:
+                searchext = '2d.fits'
+            else:
+                searchext = '2D.fits'
+            fits_2D = glob.glob(self.dir+'*'+PAstr+'*'+idstr+'*'+searchext)
             for ii in xrange(len(fits_2D)):
                 regionfile = self.regiontemp.replace('.reg',PAstr+'DSCI.reg')
                 self.ds9textregion('DSCI PA='+str(int(PA)),filename=regionfile)
@@ -2559,7 +2744,7 @@ class Application_z(Frame):
 
         if skip=True nothing will be written to output file.
         """
-        if self.autosaveplot: self.dataPlot_savebutton_cmd() # saving plot before resetting
+        if (self.autosaveplot) & (skip==False): self.dataPlot_savebutton_cmd() # saving plot before resetting
 
         try: # checking that the input can be converted to a float
             zbyhand      = str(float(self.byhandz.get()))+' '
@@ -2595,7 +2780,7 @@ class Application_z(Frame):
         resultstr  = resultstr  +'  #C# '+self.comments.get()+' \n'
 
         skipin = skip # storing original skip value
-        if resultstr == defaultstr: skip = True
+        if (resultstr == defaultstr) & (self.skipempty == True): skip = True
         if not skip:
             if self.duplicates:
                 Ndup = self.removeoutputduplicate(self.currentobj,self.PAs[0])
@@ -2630,7 +2815,7 @@ class Application_z(Frame):
             defaultstr = defaultstr+'  #C#  \n'
             resultstr = resultstr  +'  #C# '+self.comments2.get()+' \n'
 
-            if resultstr == defaultstr: skip = True
+            if (resultstr == defaultstr) & (self.skipempty == True): skip = True
             if not skip:
                 if self.duplicates:
                     Ndup = self.removeoutputduplicate(self.currentobj,self.PAs[1])
@@ -2829,7 +3014,7 @@ class Application_z(Frame):
         """
         Command for quit button
         """
-        self.reset()
+        if self.quitting == False: self.reset() # Only reset if quit_but_cmd was activated by quit button
         self.quitting = True
         self.fout.close()
         self.closewindows()
