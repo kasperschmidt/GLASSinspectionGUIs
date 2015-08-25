@@ -40,8 +40,8 @@ __author__      = "K. B. Schmidt (UCSB)"
 __maintainer__  = "K. B. Schmidt (UCSB)"
 __email__       = "kschmidt@physics.ucsb.edu"
 __contact__     = "kschmidt@physics.ucsb.edu"
-__version__     = "2.0"
-__date__        = "June 12, 2015"
+__version__     = "2.1"
+__date__        = "August 24, 2015"
 __license__     = "The MIT License (MIT)"
 __copyright__   = "Copyright (c) 2014-2015 Kasper B. Schmidt and the GLASS collaboration"
 __credits__     = ["The GLASS Collaboration http://glass.physics.ucsb.edu/"]
@@ -106,7 +106,7 @@ def launchgui_z(directory='IndvidualObjects/',GiGfile=None,GiGselection='emissio
     root = Tk()
     root.title("GLASS Inspection GUI for redshift fit (GiGz)")
     root.geometry("1000x630") # size of GUI window
-    app = Application_z(dir,outfile,master=root,GiGfile=GiGfile,GiGselection='emissionlineobjects',
+    app = Application_z(dir,outfile,master=root,GiGfile=GiGfile,GiGselection=GiGselection,
                         objlist=objlist,verbose=verbose,iname=inspectorname,clobber=clobber,ds9xpa=ds9xpa,
                         openfitsauto=openfitsauto,check4duplicates=check4duplicates,outputcheck=outputcheck,
                         latexplotlabel=latexplotlabel,autosaveplot=autosaveplot,skipempty=skipempty,
@@ -1935,6 +1935,10 @@ class Application_z(Frame):
             objlist   = np.unique(np.sort(selection['ID']))
             Nid       = len(objlist)
             if verbose: print ' - Found ',Nid,' objects with emission lines and/or continuum in ',GiGfile
+        if (GiGsel == 'allentries') or (GiGsel == None) or (GiGsel == 'all'):
+            objlist = np.unique(np.sort(self.GiGdata['ID']))
+            Nid       = len(objlist)
+            if verbose: print ' - Found ',Nid,' objects (all objects) in ',GiGfile
         else:
             print ' - WARNING the GiGselection keyword (',GiGsel,') is not valid;'
             print '   Returning all IDs in the GiG catalog ',GiGfile
