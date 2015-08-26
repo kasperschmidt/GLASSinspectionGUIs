@@ -1935,7 +1935,7 @@ class Application_z(Frame):
             objlist   = np.unique(np.sort(selection['ID']))
             Nid       = len(objlist)
             if verbose: print ' - Found ',Nid,' objects with emission lines and/or continuum in ',GiGfile
-        if (GiGsel == 'allentries') or (GiGsel == None) or (GiGsel == 'all'):
+        elif (GiGsel == 'allentries') or (GiGsel == None) or (GiGsel == 'all'):
             objlist = np.unique(np.sort(self.GiGdata['ID']))
             Nid       = len(objlist)
             if verbose: print ' - Found ',Nid,' objects (all objects) in ',GiGfile
