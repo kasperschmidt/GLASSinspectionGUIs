@@ -40,7 +40,7 @@ __author__      = "K. B. Schmidt (UCSB)"
 __maintainer__  = "K. B. Schmidt (UCSB)"
 __email__       = "kschmidt@physics.ucsb.edu"
 __contact__     = "kschmidt@physics.ucsb.edu"
-__version__     = "2.1"
+__version__     = "2.2"
 __date__        = "August 24, 2015"
 __license__     = "The MIT License (MIT)"
 __copyright__   = "Copyright (c) 2014-2015 Kasper B. Schmidt and the GLASS collaboration"
@@ -91,7 +91,7 @@ def launchgui(directory='/Users/kasperborelloschmidt/work/GLASS/MACS0717test/van
 #-------------------------------------------------------------------------------------------------------------
 def launchgui_z(directory='IndvidualObjects/',GiGfile=None,GiGselection='emissionlineobjects',
                 objlist=None,outputfile='DEFAULT',inspectorname='John Doe',clobber=False,
-                ds9xpa=False,openfitsauto=False,check4duplicates=False,skipempty=False,
+                ds9xpa=False,openfitsauto=False,check4duplicates=False,skipempty=False,inGUIimage='zfit',
                 outputcheck=False,latexplotlabel=False,autosaveplot=False,verbose=True,MASTfiles=False):
     """
     Launch the inspection GUI for the redshift inspections Application_z()
@@ -110,7 +110,7 @@ def launchgui_z(directory='IndvidualObjects/',GiGfile=None,GiGselection='emissio
                         objlist=objlist,verbose=verbose,iname=inspectorname,clobber=clobber,ds9xpa=ds9xpa,
                         openfitsauto=openfitsauto,check4duplicates=check4duplicates,outputcheck=outputcheck,
                         latexplotlabel=latexplotlabel,autosaveplot=autosaveplot,skipempty=skipempty,
-                        MASTfiles=MASTfiles)
+                        MASTfiles=MASTfiles,inGUIimage=inGUIimage)
     app.mainloop()
     root.destroy()
 #-------------------------------------------------------------------------------------------------------------
