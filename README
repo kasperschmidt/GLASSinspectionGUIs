@@ -3,12 +3,13 @@ README for the Grism Lens-Amplified Survey from Space (GLASS) inspection GUIs (G
     https://github.com/kasperschmidt/GLASSinspectionGUIs/blob/master/README.pdf
 
 Further information on GLASS can be obtained from the GLASS website at: 
-    http://glass.physics.ucsb.edu
+    http://glass.astro.ucla.edu
 
 Public GLASS data products are available at:
     https://archive.stsci.edu/prepds/glass/
 
 If you use these data or the GLASS inspection GUIs please cite:
- - Treu et al. 2015, ApJ, submitted
  - Schmidt et al. 2014, ApJL, 782, 36
+ - Treu et al. 2015, ApJ, 812, 114
+
 
