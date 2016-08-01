@@ -7,7 +7,15 @@
    PURPOSE/DESCRIPTION
 ----------------------------
  GUIs for visual inspection of data products from the Grism Lens-Amplified Survey
- from Space (GLASS) data releases.
+ from Space (GLASS) data releases and ancillary data.
+
+ visualinspection.py includes:
+    GiG    GLASS inspection GUI                        Details in Treu et al. (2015)
+    GiGz   GLASS inspection GUI for redshifts          Details in Treu et al. (2015)
+    GiGm   GLASS inspection GUI for morphologies       Details in Vulcani et al. (2016)
+
+ Furthermore, a README with details on all three GiGs is available at
+ https://github.com/kasperschmidt/GLASSinspectionGUIs/blob/master/README.pdf
 ----------------------------
    COMMENTS
 ----------------------------
@@ -22,9 +30,10 @@
 ----------------------------
    EXAMPLES/USAGE
 ----------------------------
- First GLASS data from STScI's MAST and put it in for instance 'data/clusterXXXX/'
- Then execute the following in python
- (from the directory containing visualinspection.py or add visualinspection.py to you path):
+ First download GLASS data from the GLASS webpage at STScI's MAST server:
+ https://archive.stsci.edu/prepds/glass/ and put it in for instance 'data/clusterXXXX/'.
+ Then execute the following in python (from the directory containing visualinspection.py
+ or add visualinspection.py to your path):
 
  --- Launch GiG ---
  import visualinspection as vi
@@ -34,17 +43,23 @@
  import visualinspection as vi
  vi.launchgui_z(directory='data/clusterXXXX/',outputfile='testfile_output_GiGz.txt',MASTfiles=True)
 
+ --- Launch GiGm ---
+ import visualinspection as vi
+ vi.launchgui_m(pstampsdirectory='data/postagestamps/',infofile='./infofile.txt',outputfile='testfile_output_GiGm.txt')
+
+ Note the different directory used for GiGm. This contains postage stamp data. See GiG README at
+ for details
 """
 #-------------------------------------------------------------------------------------------------------------
-__author__      = "K. B. Schmidt (UCSB)"
-__maintainer__  = "K. B. Schmidt (UCSB)"
-__email__       = "kschmidt@physics.ucsb.edu"
-__contact__     = "kschmidt@physics.ucsb.edu"
-__version__     = "2.2"
-__date__        = "August 24, 2015"
+__author__      = "K. B. Schmidt (AIP)"
+__maintainer__  = "K. B. Schmidt (AIP)"
+__email__       = "kbschmidt@aip.de"
+__contact__     = "kbschmidt@aip.de"
+__version__     = "3.0"
+__date__        = "August 1, 2016"
 __license__     = "The MIT License (MIT)"
-__copyright__   = "Copyright (c) 2014-2015 Kasper B. Schmidt and the GLASS collaboration"
-__credits__     = ["The GLASS Collaboration http://glass.physics.ucsb.edu/"]
+__copyright__   = "Copyright (c) 2014-2016 Kasper B. Schmidt and the GLASS collaboration"
+__credits__     = ["The GLASS Collaboration http://glass.astro.ucla.edu"]
 __status__      = "Production"
 #-------------------------------------------------------------------------------------------------------------
 from Tkinter import *
@@ -111,6 +126,30 @@ def launchgui_z(directory='IndvidualObjects/',GiGfile=None,GiGselection='emissio
                         openfitsauto=openfitsauto,check4duplicates=check4duplicates,outputcheck=outputcheck,
                         latexplotlabel=latexplotlabel,autosaveplot=autosaveplot,skipempty=skipempty,
                         MASTfiles=MASTfiles,inGUIimage=inGUIimage)
+    app.mainloop()
+    root.destroy()
+#-------------------------------------------------------------------------------------------------------------
+def launchgui_m(pstampsdirectory='PostageStamps/',objlist=None,clusters=None,infofile=None,
+                outputfile='DEFAULT',inspectorname='John Doe',clobber=False,
+                ds9xpa=False,openfitsauto=False,skipempty=False,
+                outputcheck=False,openpngseperately=False,verbose=True):
+    """
+    Launch the inspection GUI for the morphology inspections Application_m()
+    """
+    pdir = pstampsdirectory
+    if outputfile == 'DEFAULT':
+        outfile = pdir+'visualinspection_m_defaultoutput.txt'
+    else:
+        outfile = pdir+outputfile
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    # setup and launch GUI
+    root = Tk()
+    root.title("GLASS Inspection GUI for morphology (GiGm)")
+    root.geometry("930x530") # size of GUI window
+    app = Application_m(pdir,outfile,master=root,infofile=infofile,objlist=objlist,clusters=clusters,
+                        verbose=verbose,iname=inspectorname,
+                        clobber=clobber,ds9xpa=ds9xpa,openfitsauto=openfitsauto,
+                        outputcheck=outputcheck,skipempty=skipempty,openpngseperately=openpngseperately)
     app.mainloop()
     root.destroy()
 #-------------------------------------------------------------------------------------------------------------
@@ -205,6 +244,23 @@ def getclusterz(filestring):
 
     return cluster, redshift
 #-------------------------------------------------------------------------------------------------------------
+def get_objinfo(infofile,objid,cluster):
+    """
+    Return information on object given an input file
+    """
+    if infofile == None:
+        returndat = None
+    else:
+        infodat = np.genfromtxt(infofile,dtype=None,names=True,skip_header=0,comments='#')
+        objent  = np.where((infodat['id'] == int(objid)) & (infodat['cluster'] == cluster))[0]
+
+        if len(objent) == 0:
+            returndat = None
+        else:
+            returndat = infodat[objent]
+
+    return returndat
+#-------------------------------------------------------------------------------------------------------------
 def check_idlist(idlist,dir,verbose=True):
     """
     Checking if pngs exist for objects in idlist.
@@ -240,7 +296,7 @@ class Application(Frame):
                           inspected.
         verbose           Toggle verbosity.
         iname             Name of inspector to write in output file.
-        ACSinspection     If inspecting ACS objects (not enabled as of 150612).
+        ACSinspection     If inspecting ACS objects (not enabled as of 160727).
         clobber           Overwrites the output file if it already exists
         ds9xpa            If xpa is availbale for comunicating commands to ds9
                           set this keyword to tru and this will be used instead
@@ -309,7 +365,7 @@ class Application(Frame):
             self.objlist = vi.check_idlist(self.objlist,self.dir,verbose=self.vb) # check objects exist in dir
 
         if len(self.objlist) == 0:
-            sys.exit(' No valid IDs found (running on MAST files? Then use MASTfiles = True)')
+            sys.exit('  No valid IDs found \n            Forgot a forward slash after the objdir? \n            Running on MAST files? Then use MASTfiles = True')
 
         self.currentobj = self.objlist[0]                    # set the first id to look at
         if verbose: print " - Found "+str(len(self.objlist))+' objects to inspect'
@@ -1531,8 +1587,8 @@ class Application_z(Frame):
         GiGfile           File name of GiG inspectionn output if available. Will enable displaying
                           emission lines noted in the GiG output on the interactive plot as well as
                           selecting objects based on inspections.
-        GiGselection      The selection to apply to the GiG catalog prioir to performing inspection.
-                          Only objects satisfying the GiGselection will be inspected.
+        GiGselection      The selection to apply to the GiG catalog prior to performing inspection.
+                          Only objects satisfying the GiGselection will be inspected unless an objlist was provided.
         objlist           List of objects to inspect. If 'None' all objects in 'dir' will be
                           inspected.
         verbose           Toggle verbosity.
@@ -1623,7 +1679,7 @@ class Application_z(Frame):
             self.objlist = vi.check_idlist(self.objlist,self.dir,verbose=self.vb) # check objects exist in dir
 
         if len(self.objlist) == 0:
-            sys.exit(' No valid IDs found (running on MAST files? Then use MASTfiles = True)')
+            sys.exit(' No valid IDs found \n             Forgot a forward slash after the objdir? \n             Running on MAST files? Then use MASTfiles = True')
 
         self.currentobj = self.objlist[0]                    # set the first id to look at
         if verbose: print " - Found "+str(len(self.objlist))+' objects to inspect'
@@ -1800,7 +1856,7 @@ class Application_z(Frame):
                              #'i','I','j','J','k','K','l','L',
                              'm','M','n','N','o','O','p','P',
                              'q','Q','r','R','s','S','t','T',
-                             'u','U','v','V','w','W''x','X',
+                             'u','U','v','V','w','W','x','X',
                              'y','Y','z','Z']
         self.calculations = []#['c','C','g','G','d','D','h','H','p','P','l','L']
         colors            = self.getcolors()
@@ -2232,13 +2288,18 @@ class Application_z(Frame):
         if fullzoom:
             xlow, xhigh, ylow, yhigh =  self.DPxlow_full, self.DPxhigh_full, self.DPylow_full, self.DPyhigh_full
         #----------------- Define emission line list -----------------
-        #Lines from http://www.sdss.org/dr7/algorithms/linestable.html
+        #Lines from http://www.sdss.org/dr7/algorithms/linestable.html and
+        # http://adsabs.harvard.edu/abs/2008ApJS..174..282L
         linelist = np.asarray([1216 ,1335 ,1402  ,1549 ,1908. ,2795. ,3726.03 ,
-                    4101.74   ,4340.47  ,4861.33 ,4959.,5007. ,6548,
-                    6562.8      ,6583.5,6718,6732])
+                    4101.74   ,4340.47  ,4861.33 ,4959.,5007. ,
+                    6548, 6562.8, 6583.5,
+                    6718,6732,
+                    9071.1,   9533.2])
         linename = ['Lya','CII','SiIV','CIV','CIII]','MgII',"[OII]" ,
-                    '$H\delta$','H$\gamma$','H$\\beta$',''   ,'[OIII]',''  ,
-                    'H$\\alpha$+NII',' '   ,' ' ,'SII']
+                    '$H\delta$','H$\gamma$','H$\\beta$',''   ,'[OIII]',
+                    ''  ,'H$\\alpha$+NII',' '   ,
+                    ' ' ,'SII',
+                    '[SIII]','[SIII]']
         #----------------- Refreshing plot window-----------------
         if refresh:
             self.dataPlot_fig.clf() # clearing figure
@@ -3183,6 +3244,919 @@ class Application_z(Frame):
         infostr = "--- Currently looking at object "+str(self.currentobj)+\
                   ', PA(s) = '+str(self.PAs)+\
                   '  ('+self.cluster+' redshift = '+str(redshift)+') ---'
+
+        return infostr
+#-------------------------------------------------------------------------------------------------------------
+class Application_m(Frame):
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def __init__(self,pdir,outfile,master=None,infofile=None,objlist=None,clusters=None,verbose=True,iname='John Doe',
+                 ACSinspection=False,clobber=False,ds9xpa=False,openfitsauto=False,outputcheck=False,skipempty=False,
+                 openpngseperately=False):
+        """
+        Intitialize the GUI
+
+        -- INPUT --
+        pdir              Directory containing the postage stamps
+        outfile           Name of output file to create if it doesn't exists. Use clobber to overwrite.
+        master            Provide another 'master' display. If None GUI created from scratch.
+        objlist           List of objects to inspect. If 'None' all objects in 'dir' will be
+                          inspected.
+        clusters          If objlist is not None, provide the list of clusters the IDs correspond to
+        verbose           Toggle verbosity.
+        iname             Name of inspector to write in output file.
+        ACSinspection     If inspecting ACS objects (not enabled as of 150423).
+        clobber           Overwrites the output file if it already exists
+        ds9xpa            If xpa is availbale for comunicating commands to ds9
+                          set this keyword to tru and this will be used instead
+                          of opening ds9 everytime the fits files are requested.
+
+                          NB! XPA fix the number of frames. If more than Nframes images are available they
+                              will not be shown. If all objects only have Nframes that's not a proble.
+                              otherwise set ds9xpa = False
+
+        openfitsauto      Automatically load the fits files into the DS9 window
+                          when advancing to next (or previous) object.
+        outputcheck       Checking the written output to see if it contains the expected number
+                          of objects etc.
+        skipempty         Set to True to ignore unedited objects when writing to output file.
+                          Hence, if skipempty = True objects with no comments, flags set or sliders changed
+                          will be written to the output
+        openpngseperately By default the pngs are not opened in Preview/GThumb to avoid biasing the inspections
+                          However, setting this keyword to true, will do that.
+        """
+        pp    = subprocess.Popen('ds9 -version',shell=True,executable=os.environ["SHELL"],stdout=subprocess.PIPE)
+        ppout = pp.communicate()[0]
+        self.ds9version = ppout.split()
+
+        self.now         = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.vb          = verbose
+        self.pdir        = pdir
+        self.master      = master
+        self.infofile    = infofile
+        self.ds9open     = False # set ds9 indicator (used for ds9xpa = False)
+        self.ds9windowopen = False # set ds9 indicator (used for ds9xpa = True)
+        self.ACSins      = ACSinspection
+        self.quitting    = False
+        self.xpa         = ds9xpa # check if user indacetd that xpa was available for ds9
+        self.fitsauto    = openfitsauto # Open fits files automatically?
+        self.outcheck    = outputcheck
+        self.skipempty   = skipempty
+        self.openpngssep = openpngseperately
+        if self.xpa:
+            self.ds9windowopen = False
+
+        if os.path.exists(self.pdir):
+            self.twodfits = glob.glob(self.pdir)
+        else:
+            sys.exit(' - The directory '+self.pdir+' does not exist --> ABORTING')
+
+        # -------- GET OBJIDS --------
+        if objlist == None:
+            searchext = '_rgb.png'
+
+            self.file_2Dpng  = glob.glob(self.pdir+'*'+searchext)
+            self.clusterlist = np.asarray([self.file_2Dpng[jj].split('/')[-1].split('_')[0]
+                                           for jj in xrange(len(self.file_2Dpng))])
+            self.objlist     = np.asarray([int(self.file_2Dpng[jj].split('/')[-1].split('_')[1])
+                                           for jj in xrange(len(self.file_2Dpng))])
+        else:
+            if type(objlist) == str:
+                self.objlist, self.clusterlist = np.genfromtxt(objlist,dtype=None,comments='#')
+            else:
+                self.objlist     = np.asarray(objlist)
+                self.clusterlist = np.asarray(clusters)
+
+        # ---- sort ids
+        entsort = np.argsort(self.objlist)
+        self.objlist = self.objlist[entsort]
+        self.clusterlist = self.clusterlist[entsort]
+
+        if len(self.objlist) == 0:
+            sys.exit('  No valid IDs found \n            Forgot a forward slash after the objdir?')
+
+        self.currentobj = self.objlist[0]                    # set the first id to look at
+        self.currentcl  = self.clusterlist[0]
+
+        if verbose: print " - Found "+str(len(self.objlist))+' objects to inspect'
+
+        # -------- OPEN/PREPARE OUTPUT FILE --------
+        if os.path.isfile(outfile) & (clobber == True): # check if file is to be overwritten
+            overwrite = raw_input(' - clobber==True Are you sure you want to overwrite '+outfile+'? (y/n): ')
+            if (overwrite == 'y') or (overwrite == 'yes'):
+                print "   Okay, I'll remove the file and start a new one"
+                os.remove(outfile)
+            elif (overwrite == 'n') or (overwrite == 'no'):
+                print "   Okay, I'll append to the existing file, then"
+            else:
+                sys.exit('   "'+overwrite+'" is not a valid answer --> Aborting')
+
+        if os.path.isfile(outfile):
+            newfile   = False
+            self.fout = open(outfile,'r')                # open existing file
+            IDinspected = np.array([])                  # array to contain IDs in file
+            for line in self.fout.readlines():           # loop through file to last line
+                lsplit = line.split()
+                if lsplit[0] != '#':
+                    IDinspected = np.append(IDinspected,float(lsplit[0]))
+            if len(IDinspected) == 0:
+                sys.exit('Found no inspected objects in '+outfile)
+            lastline = line
+            self.fout.close()
+
+            lastID = lastline.split()[0]                     # get the last ID in file
+            lastCL = lastline.split()[1]                     # get the last cluster in file
+
+            if lastID != '#':
+                objent = np.where((self.objlist == float(lastID)) & (self.clusterlist == lastCL))[0]
+                if self.vb: print ' - The file '+outfile+' already exists (Resuming after last objects in output)'
+                try:
+                    self.currentobj = self.objlist[objent+1][0]      # change first id to look at
+                    self.currentcl  = self.clusterlist[objent+1][0]  # change cluster for first id
+                except:
+                    sys.exit(' - The last object in the outputfile is the last in "objlist" --> ABORTING ')
+                Nremaining = len(self.objlist[objent+1:])
+                Ninspected = len(np.sort(IDinspected))
+                if self.vb:
+                    print ' - Info from existing output: '
+                    print '   '+str(Nremaining)+' of '+str(len(self.objlist))+' objects still need to be expected'
+                    print '   Found '+str(Ninspected)+' objects already inspected in file'
+            else:
+                if self.vb: print ' - The file '+outfile+' already exists (append as last row does not contain ID)'
+            self.fout     = open(outfile,'a')
+        else:
+            if self.vb: print ' - The file '+outfile+' was created (did not exist)'
+            self.fout     = open(outfile,'w')
+            self.fout.write('# Results from Visual Inspection initiated on '+self.now+' \n')
+            self.fout.write('# Inspector: '+iname+' \n')
+            newfile = True
+
+        self.outfile = outfile
+
+        # -------- ADD LABEL --------
+        self.openpngs() # open pngs for first object and set PA variables
+        self.showingHamaps = False
+        position = [0,0,1]
+        self.labelvar = StringVar()
+        label = Label(self.master,textvariable=self.labelvar)
+        label.grid(row=position[0],column=position[1],columnspan=position[2],sticky=N)
+        self.labelvar.set(self.infostring())
+
+        # -------- CREATE WIDGETS --------
+        fmain = Frame.__init__(self, self.master, bg="white")
+        self.grid()
+        self.create_widgets()
+
+        # -------- ADD IMAGE WINDOWS --------
+        self.updatepstamps()
+
+        # -------- DRAW SEPERATORS --------
+        self.drawsep(900,4,1  ,0,4,0, 2,899,4)
+        self.drawsep(900,4,29 ,0,4,0, 2,899,4)
+        #self.drawsep(900,4,60 ,0,4,0, 2,899,4)
+        self.drawsep(900,4,80 ,0,4,0, 2,899,4)
+        self.drawsep(900,4,110,0,4,0, 2,899,4)
+
+        # -------- OPEN FITS FILES FOR FIRST OBJ --------
+        if self.fitsauto: # loading fits files automatically
+            if self.xpa:
+                self.openfits_but_cmd_xpa()
+            else:
+                self.openfits_but_cmd()
+
+        # -------- FINALIZE --------
+        filehdr = '  '.join([key[3:] for key in self.keys])      # create header for output
+        if newfile: self.fout.write('# ID cluster '+filehdr.replace(': ','_')+filehdr.replace('/','_')+' \n') # write header to output
+
+        self.master.bind("<Key>", self.keyboard_cmd) # enable keyboard shortcuts
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def create_widgets(self):
+        """
+        Arrange the individual parts of the GUI
+        postions are given as [row,column,span]
+        """
+
+        # -------- 1st PA --------
+        self.cbpos = [5,0,1]
+        self.checkboxes(self.cbpos)
+        self.commentfield([self.cbpos[0]+6,2,1])
+
+        self.openfits_but([65,3,1])
+
+        self.prev_but([70,0,1])
+        self.quit_but([70,1,1])
+        self.skip_but([70,2,1])
+        self.next_but([70,3,1])
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def drawsep(self,width,height,row,col,colspan,xleftbottom,yleftbottom,xrighttop,yrighttop):
+        """
+        Draw a seperator
+        """
+        cv = Canvas(self, width=width, height=height)
+        cv.grid(row = row, column = col, columnspan = colspan, sticky=N)
+        cv.create_rectangle(xleftbottom, yleftbottom, xrighttop, yrighttop,fill='black')
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def checkboxes(self,position,disable=False):
+        """
+        Checkboxes for keywords to assign to object
+        """
+        self.dirstr = 'direct_'
+        self.Ncol  = 4.
+
+        self.sliders      = [] #['d','D','l','L']
+        self.empty        = ['o','p','v','w','y','z']
+        self.Haboxes      = ['i','j','k','l','m','n','q','r','s','t','u']
+        self.calculations = []
+        colors            = self.getcolors()
+
+        # Note that letters in () enables sorting of boxes
+        self.keys = {}
+        self.keys['(a) Img: Elliptical']  = 0
+        self.keys['(b) Img: S0']  = 0
+        self.keys['(c) Img: Spiral']  = 0
+        self.keys['(d) Img: Hubble_Unclassified']  = 0
+
+        self.keys['(e) Img: Irregular']  = 0
+        self.keys['(f) Img: Merging']  = 0
+        self.keys['(g) Img: Do_not_know']  = 0
+        self.keys['(h) Img: Star/Defect']  = 0
+
+        self.keys['(i) Ha: Regular'] = 0
+        self.keys['(j) Ha: Clumpy'] = 0
+        self.keys['(k) Ha: Concentrated']  = 0
+        self.keys['(l) Ha: Assymmetric_Jellyfish']  = 0
+
+        self.keys['(m) Ha: Other'] = 0
+        self.keys['(n) Ha: No_Halpha'] = 0
+        self.keys['(o) empty1']  = 0
+        self.keys['(p) empty2']  = 0
+
+        self.keys['(q) Process: Regular'] = 0
+        self.keys['(r) Process: Ram_Pressure'] = 0
+        self.keys['(s) Process: Major_Merger']  = 0
+        self.keys['(t) Process: Minor_Merger']  = 0
+
+        self.keys['(u) Process: Other']  = 0
+        #self.keys['(v) empty3'] = 0
+        #self.keys['(w) empty4']  = 0
+        self.keys['(x) Uncertain'] = 0
+
+        #self.keys['(y) empty5'] = 0
+        #self.keys['(z) empty6'] = 0
+
+        if (sys.version_info[0] == 2) & (sys.version_info[1] == 7): # sort dictionary if running python 2.7
+            import collections
+            self.keys = collections.OrderedDict(sorted(self.keys.items()))
+        else:
+            print 'WARNING Python version not 2.7 so not sorting dictionary of keywords(1)'
+
+        Nkey = 0
+        self.cbdic     = {}
+        self.sliderdic = {}
+        for key in self.keys:
+            rowval = position[0]+int(np.floor(Nkey/self.Ncol))
+            colval = position[1]+int(np.round((Nkey/self.Ncol-np.floor((Nkey/self.Ncol)))*self.Ncol))
+
+            self.keys[key] = Variable()
+
+            if key[1] in self.sliders:
+                self.slider = Scale(self, from_=0, to=4,label=key,variable = self.keys[key],
+                                    orient=HORIZONTAL,background=colors[key[1]],length=200)
+                self.slider.grid(row=rowval,column=colval,columnspan=position[2],rowspan=2,sticky=W)
+                self.slider.set(0)
+
+                if disable:
+                    self.slider.configure(state='disabled')
+                else:
+                    self.sliderdic[key] = self.slider
+            elif key[1] in self.empty:
+                self.cb = Checkbutton(self, text=' ')
+                self.cb.grid(row=position[0]+5,column=0,columnspan=1,sticky=W)
+                self.cb.deselect()
+                self.keys[key].set('-1')
+                if key[1] in self.calculations:
+                    self.keys[key].set(key)
+            else:
+                self.cb = Checkbutton(self, text=key, variable=self.keys[key],background=colors[key[1]])
+                if key[1] == 'x': # manually shifting the 'uncertain' checkbox
+                    rowval = rowval+1
+
+                self.cb.grid(row=rowval,column=colval,columnspan=position[2],sticky=W)
+                self.cb.deselect()
+
+                if disable:
+                    self.cb.configure(state='disabled')
+                elif key[1] in self.Haboxes:
+                    self.cb.configure(state='disabled')
+                    self.keys[key].set('-1')
+                else:
+                    self.cbdic[key] = self.cb
+
+            Nkey = Nkey + 1
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def enableHaboxes(self,position):
+        """
+        Enable Ha-related checkboxes
+        """
+        colors = self.getcolors()
+        Nkey = 0
+        for key in self.keys:
+            rowval = position[0]+int(np.floor(Nkey/self.Ncol))
+            colval = position[1]+int(np.round((Nkey/self.Ncol-np.floor((Nkey/self.Ncol)))*self.Ncol))
+            if key[1] in self.Haboxes:
+                self.keys[key] = Variable()
+                self.cb = Checkbutton(self, text=key, variable=self.keys[key],background=colors[key[1]])
+                self.cb.grid(row=rowval,column=colval,columnspan=position[2],sticky=W)
+                self.cb.configure(state='active')
+                self.cb.deselect()
+                self.cbdic[key] = self.cb
+            Nkey = Nkey + 1
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def getcolors(self,):
+        """
+        Dictionary with colors for keys
+        """
+        collist = ['orange','red','cyan','magenta','green','white']
+        colors  = {}
+        colors['a'] = collist[4]
+        colors['b'] = collist[4]
+        colors['c'] = collist[4]
+        colors['d'] = collist[4]
+        colors['e'] = collist[4]
+        colors['f'] = collist[4]
+        colors['g'] = collist[4]
+        colors['h'] = collist[0]
+        colors['i'] = collist[1]
+        colors['j'] = collist[1]
+        colors['k'] = collist[1]
+        colors['l'] = collist[1]
+        colors['m'] = collist[1]
+        colors['n'] = collist[1]
+        colors['o'] = collist[1]
+        colors['p'] = collist[3]
+        colors['q'] = collist[2]
+        colors['r'] = collist[2]
+        colors['s'] = collist[2]
+        colors['t'] = collist[2]
+        colors['u'] = collist[2]
+        colors['v'] = collist[3]
+        colors['w'] = collist[3]
+        colors['x'] = collist[0]
+        colors['y'] = collist[3]
+        colors['z'] = collist[3]
+
+        return colors
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def commentfield(self,position):
+        """
+        Field to provide comments
+        """
+        self.label = Label(self,text='(p) Comments ("tab" to move focus):  ')
+        self.label.grid(row=position[0],column=position[1],columnspan=position[2],sticky=W)
+        self.comments = Entry(self)
+        self.comments.grid(row=position[0],column=position[1]+position[2],columnspan=position[2],sticky=W)
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def openpngs(self):
+        """
+        Function to open pngs of object
+        """
+        self.objhasHa = False # resetting Halpha flag
+
+        idstr = str("%05d" % self.currentobj)
+        self.pstamplist = glob.glob(self.pdir+self.currentcl+'_'+idstr+'*.png')
+        self.Nstamps = len(self.pstamplist)
+
+        self.Hamap = self.pdir+self.currentcl+'_'+idstr+'_ha.png'
+        if self.Hamap in self.pstamplist:
+            self.objhasHa = True
+
+        if len(self.pstamplist) == 0:
+            sys.exit(' - Did not find any png files to open. Looked for '+
+                     self.pdir+self.currentcl+'_'+idstr+'*.png  --> ABORTING')
+
+        self.file = self.pstamplist[0].split('/')[-1]
+
+
+        rgbs    = [name for name in self.pstamplist if name.endswith("rgb.png")]
+        f475s   = [name for name in self.pstamplist if name.endswith("f475w.png")]
+        f105s   = [name for name in self.pstamplist if name.endswith("f105w.png")]
+        f140s   = [name for name in self.pstamplist if name.endswith("f140w.png")]
+        f160s   = [name for name in self.pstamplist if name.endswith("f160w.png")]
+        f475Has = [name for name in self.pstamplist if name.endswith("f475w_ha.png")]
+        f105Has = [name for name in self.pstamplist if name.endswith("f105w_ha.png")]
+        f140Has = [name for name in self.pstamplist if name.endswith("f140w_ha.png")]
+        f160Has = [name for name in self.pstamplist if name.endswith("f160w_ha.png")]
+
+        pngorderedlist  = rgbs + f475s + f105s + f105s + f140s + f160s + f475Has + f105Has + f105Has + f140Has + f160Has
+        remaining       = list(set(self.pstamplist) - set(pngorderedlist)) # get files not accounted for above (ha map)
+        self.pstamplist = pngorderedlist + remaining                       # save ordered list as main file list
+
+        if self.openpngssep:
+            pngorderedlist  = self.pstamplist
+            self.plat = sys.platform
+            if self.plat == 'darwin':
+                import platform
+                macversion = platform.mac_ver()[0]
+                if float(macversion.split('.')[1]) > 6: # check if "open -F" is available (mac OS X 10.7.0 and above)
+                    opencmd = 'open -n -F '+' '.join(pngorderedlist)
+                else:
+                    opencmd = 'open -n '+' '.join(pngorderedlist)
+            elif self.plat == 'linux2' or 'Linux':
+                opencmd = 'gthumb '+' '.join(pngorderedlist)+' &'
+
+            self.pPNG = subprocess.Popen(opencmd,shell=True,executable=os.environ["SHELL"])
+            time.sleep(1.1)# sleep to make sure png appear in PIDlist
+            if self.plat == 'darwin':
+                self.pngPID = vi.getPID('Preview.app',verbose=False) # get PID of png process
+            elif self.plat == 'linux2' or 'Linux':
+                self.pngPID = vi.getPID('gthumb',verbose=False)      # get PID of png process
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def openfits_but(self,position):
+        """
+        Button to open fits files
+        """
+        self.fitsb = Button(self)
+        self.fitsb["text"] = "(0) Open fits files"
+        if self.xpa:
+            self.fitsb["command"] = self.openfits_but_cmd_xpa
+        else:
+            self.fitsb["command"] = self.openfits_but_cmd
+
+        self.fitsb.grid(row=position[0],column=position[1],columnspan=position[2],sticky=W)
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def openfits_but_cmd_xpa(self):
+        """
+        Command for openfits button
+        """
+        self.regiontemp = 'temp_ds9_forinspection.reg'
+        idstr   = str("%05d" % self.currentobj)
+        lockstr = self.lockds9string()
+        ds9cmd  = ' '
+
+        if not self.ds9windowopen:
+            ds9cmd = ds9cmd+'ds9 -geometry 1000x600 -scale zscale '+lockstr+' -tile grid layout 4 1'
+            self.pds9   = subprocess.Popen(ds9cmd,shell=True,executable=os.environ["SHELL"])
+            time.sleep(1.1)# sleep to make sure ds9 appear in PIDlist
+            self.ds9PID = vi.getPID('ds9',verbose=False) # get PID of DS9 process
+            self.ds9windowopen = True
+            time.sleep(1.0)
+            out = commands.getoutput('xpaset -p ds9 frame new rgb')
+            out = commands.getoutput('xpaset -p ds9 frame new')
+            out = commands.getoutput('xpaset -p ds9 frame new')
+            out = commands.getoutput('xpaset -p ds9 frame new')
+            out = commands.getoutput('xpaset -p ds9 frame 1')
+            out = commands.getoutput('xpaset -p ds9 frame hide')
+
+            out = commands.getoutput('xpaset -p ds9 tile')
+
+        Fstart = 2
+        for pstamp in self.pstamplist:
+            pstampname = '_'.join(pstamp.split('.')[0].split('_')[2:])
+            fitsstamp  = pstamp.replace('.png','.fits')
+
+            if fitsstamp.endswith('_ha.fits'):
+                pass
+            else:
+                out = commands.getoutput('xpaset -p ds9 frame '+str(Fstart))
+                if 'rgb' in fitsstamp:
+                    out = commands.getoutput('xpaset -p ds9 rgb red')
+                    out = commands.getoutput('xpaset -p ds9 file '+fitsstamp.replace('rgb','rgb_r')+'[0]')
+                    out = commands.getoutput('xpaset -p ds9 rgb green')
+                    out = commands.getoutput('xpaset -p ds9 file '+fitsstamp.replace('rgb','rgb_g')+'[0]')
+                    out = commands.getoutput('xpaset -p ds9 rgb blue')
+                    out = commands.getoutput('xpaset -p ds9 file '+fitsstamp.replace('rgb','rgb_b')+'[0]')
+                else:
+                    regionfile = self.regiontemp.replace('.reg',pstampname+'.reg')
+                    self.ds9textregion(pstampname,filename=regionfile)
+                    out = commands.getoutput('xpaset -p ds9 file '+fitsstamp+'[0]')
+                    out = commands.getoutput('xpaset -p ds9 regions '+regionfile)
+                Fstart += 1
+
+        out = commands.getoutput('xpaset -p ds9 zoom to fit')
+
+        if self.showingHamaps: # sho the Halpha map fits file
+            pstampname = 'Halpha'
+            fitsstamp  = self.Hamap.replace('.png','.fits')
+            out = commands.getoutput('xpaset -p ds9 frame '+str(Fstart))
+            regionfile = self.regiontemp.replace('.reg',pstampname+'.reg')
+            self.ds9textregion(pstampname,filename=regionfile)
+            out = commands.getoutput('xpaset -p ds9 file '+fitsstamp+'[0]')
+            out = commands.getoutput('xpaset -p ds9 regions '+regionfile)
+            Fstart += 1
+        else:
+            out = commands.getoutput('xpaset -p ds9 frame '+str(Fstart))
+            out = commands.getoutput('xpaset -p ds9 frame clear')
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def openfits_but_cmd(self):
+        """
+        Command for openfits button
+        """
+        self.ds9open = True
+        self.regiontemp = 'temp_ds9_forinspection.reg'
+        idstr   = str("%05d" % self.currentobj)
+        lockstr = self.lockds9string()
+
+        ds9cmd  = 'ds9 -rgb -geometry 1000x600 -scale zscale '+lockstr+' -tile grid layout 4 1 -frame 1 -frame hide '
+
+        Fstart = 2
+        for pstamp in self.pstamplist:
+            pstampname = '_'.join(pstamp.split('.')[0].split('_')[2:])
+            fitsstamp  = pstamp.replace('.png','.fits')
+            if fitsstamp.endswith('_ha.fits'):
+                pass
+            else:
+                if 'rgb' in fitsstamp:
+                    ds9cmd = ds9cmd+' -frame '+str(Fstart)+' -red "'+fitsstamp.replace('rgb','rgb_r')+'[0]" '+\
+                             ' -frame '+str(Fstart)+' -green "'+fitsstamp.replace('rgb','rgb_g')+'[0]" '+\
+                             ' -frame '+str(Fstart)+' -blue "'+fitsstamp.replace('rgb','rgb_b')+'[0]" '
+                else:
+                    regionfile = self.regiontemp.replace('.reg',pstampname+'.reg')
+                    self.ds9textregion(pstampname,filename=regionfile)
+                    ds9cmd = ds9cmd+' -frame '+str(Fstart)+' "'+fitsstamp+'[0]" '+\
+                             ' -frame '+str(Fstart)+' -region '+regionfile+' '
+                Fstart += 1
+
+        if self.showingHamaps: # sho the Halpha map fits file
+            pstampname = 'Halpha'
+            fitsstamp  = self.Hamap.replace('.png','.fits')
+            regionfile = self.regiontemp.replace('.reg',pstampname+'.reg')
+            self.ds9textregion(pstampname,filename=regionfile)
+            ds9cmd = ds9cmd+' -frame '+str(Fstart)+' "'+fitsstamp+'[0]" '+\
+                     ' -frame '+str(Fstart)+' -region '+regionfile+' '
+        ds9cmd = ds9cmd+' -tile yes -zoom to fit'
+        print ds9cmd
+        self.pds9   = subprocess.Popen(ds9cmd,shell=True,executable=os.environ["SHELL"])
+        time.sleep(1.1)# sleep to make sure ds9 appear in PIDlist
+        self.ds9PID = vi.getPID('ds9',verbose=False) # get PID of DS9 process
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def lockds9string(self):
+        """
+        """
+        if int(self.ds9version[1].split('.')[0]) >= 7: # only lock if ds9 version is 7 or later
+            lockstr = ' -lock frame physical '
+        else:
+            print ' - WARNING DS9 version older than 7.*; Not locking frames.'
+            lockstr = ' '
+
+        return lockstr
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def ds9textregion(self,text,filename='temp.reg'):
+        """
+        Create ds9 region file with text string
+        Note that it's overwriting any existing file!
+        """
+        regstr = 'physical\n# text(30,5) textangle=0 textrotate=0 font="helvetica 12 normal roman" text={'+text+'}'
+        fds9region = open(filename,'w')
+        fds9region.write(regstr)
+        fds9region.close()
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def set_imgmap(self,position,namekey):
+        imgname = self.pstamplist[0] # setting default imgname (just the first in list of images)
+        for pstamp in self.pstamplist:
+            if namekey in pstamp: imgname = pstamp
+        img = ImageTk.PhotoImage(Image.open(imgname).resize((self.imgx,self.imgy),Image.ANTIALIAS))
+        self.imageframe = Label(self, image=img)
+        self.imageframe.image = img
+        self.imageframe.grid(row = position[0], column = position[1], columnspan = position[2], sticky=N+W+E+S)
+
+        return self.imageframe
+    # - - - - - - - - - - - - - - - - -  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def updatepstamps(self,ha=False):
+        """
+        update postage stamp images in GUI
+        """
+        self.imgx,self.imgy = 220, 220
+        rownumberstart = 100
+        if ha:
+            self.f475wHa_imgframe  = self.set_imgmap([rownumberstart + 0,1,1],'_f475w_ha')
+            self.f105wHa_imgframe  = self.set_imgmap([rownumberstart + 0,2,1],'_f140w_ha')
+            self.ha_imgframe       = self.set_imgmap([rownumberstart + 0,3,1],'_ha')
+        else:
+            self.rgb_imgframe      = self.set_imgmap([rownumberstart + 0,0,1],'_rgb.')
+            self.f475w_imgframe    = self.set_imgmap([rownumberstart + 0,1,1],'_f475w.')
+            self.f105w_imgframe    = self.set_imgmap([rownumberstart + 0,2,1],'_f140w.')
+            try:
+                self.ha_imgframe.grid_forget()
+            except:
+                pass
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def reset(self,skip=False):
+        """
+        Writing results to output, resetting checkboxes, and closing DS9 and PNG windows
+
+        if skip=True nothing will be written to output file.
+        """
+        resultstr  = ' '+str("%.5d" % self.currentobj)+' '+str(self.currentcl)
+        defaultstr = resultstr
+        for key in self.keys:
+            keyval    = self.keys[key].get()
+            if keyval == '-1':
+                defaultstr = defaultstr+' '+str(keyval)
+            elif len(keyval) > 10: # for text keys
+                defaultstr = defaultstr+' '+keyval
+            else:
+                defaultstr = defaultstr+' '+str(0)
+            resultstr = resultstr+' '+str(keyval)
+
+        # adding info from comment and wave fields
+        resultstr  = resultstr+'  #C# '+self.comments.get()+' \n'
+
+        # check if format of ouput is good (i.e., is more than one value set in each category?)
+        self.goodformat = True
+        resultsplit = resultstr.split(' ')
+        if resultsplit[3:10].count('1')  != 1: self.goodformat = False  # img checkboxes
+        if (resultsplit[11:17].count('1') != 1) & ('-1' not in resultsplit[11:17]): self.goodformat = False  # Ha CBs
+        if (resultsplit[19:24].count('1') != 1) & ('-1' not in resultsplit[11:17]): self.goodformat = False  # process CBs
+
+        if self.goodformat or skip:
+            skipin = skip # storing original skip value
+            if (resultstr == defaultstr) & (self.skipempty == True): skip = True
+            if not skip:
+                self.fout.write(str(resultstr))
+            if resultstr == defaultstr: skip = skipin # restoring original skip value
+
+            # --- close and re-open output file so inspection is saved ---
+            self.fout.close()
+            self.fout = open(self.outfile,'a')
+
+            # --- resetting widgets and closing windows ---
+            self.comments.delete(0,END) # reset comment field
+
+            self.checkboxes(self.cbpos) # reset check boxes
+
+            self.closewindows()
+
+            self.ds9open = False # resetting ds9 indicator
+            self.focus_set() # set focus to main window
+        else:
+            print ' WARNING: You should set at least one, but only one, checkbox in each category - Fix before advancing.'
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def removeoutputduplicate(self,id):
+        """
+        Subtract continuum from science fram
+        """
+        self.fout.close()
+        idstr       = str("%.5d" % id)
+        stringstart = ' '+idstr
+        file        = open(self.outfile,'r')
+        lines       = file.readlines()
+        file.close()
+        file = open(self.outfile,"w")
+
+        Ndup        = 0
+        for line in lines:
+            if line.startswith(stringstart):
+                file.write(line)
+            else:
+                if self.vb: print ' - Found dublicate entry for ID '+idstr+' deleting it!'
+                Ndup = Ndup+1
+
+        file.close()
+        self.fout = open(self.outfile,'a')
+        return Ndup
+
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def closewindows(self):
+        """
+        Close PNG and DS9 windows
+        """
+        killsignal = 1     # see bash> man kill
+        PIDkill    = True
+        if PIDkill:
+            if self.openpngssep:
+                try:
+                    os.kill(self.pngPID,killsignal)                  # close PNG window for currentobj
+                except:
+                    print '   WARNING error occurred while trying to close PNG window(s)'
+
+            if np.logical_or(((self.ds9open == True) & (self.xpa == False)),
+                             ((self.xpa == True) & (self.quitting == True) & (self.ds9windowopen == True))):
+                try:
+                    os.kill(self.ds9PID,killsignal)                  # close DS9 window for currentobj
+                except:
+                    if self.vb: print ' - WARNING: Could not kill DS9 process id ',self.ds9PID
+                rmout = commands.getoutput('rm '+self.regiontemp.replace('.reg','*.reg')) # removing ds9 region file
+        else:
+            print '=== WHAT ARE YOU DOING HERE?? ==='
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def skip_but(self,position):
+        self.skip = Button(self)
+        self.skip["text"] = "Skip object"
+        self.skip["command"] = self.skip_but_cmd
+        self.skip.grid(row=position[0],column=position[1],columnspan=position[2],sticky=W)
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def skip_but_cmd(self):
+        """
+        Command for skip button
+        """
+        self.reset(skip=True)
+
+        if self.currentobj == self.objlist[-1]:
+            if self.vb: print ' - Object',self.currentobj,' was the last in the list.\n   Quitting GUI.'
+            self.quitting = True
+            self.quit_but_cmd(skip=True)
+        else:
+            newent = np.where((self.objlist == self.currentobj) & (self.clusterlist == self.currentcl))[0]+1
+            self.currentobj = self.objlist[newent][0]
+            self.currentcl  = self.clusterlist[newent][0]
+            self.openpngs()
+            self.showingHamaps = False
+            self.labelvar.set(self.infostring())
+            self.updatepstamps()
+
+            if self.fitsauto: # loading fits files automatically
+                if self.xpa:
+                    self.openfits_but_cmd_xpa()
+                else:
+                    self.openfits_but_cmd()
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def next_but(self,position):
+        self.next = Button(self)
+        self.next["text"] = "(8) Next object (save)"
+        self.next["command"] = self.next_but_cmd
+        self.next.grid(row=position[0],column=position[1],columnspan=position[2],sticky=W)
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def next_but_cmd(self):
+        """
+        Command for next button
+        """
+        if (self.currentobj == self.objlist[-1]) & (self.currentcl == self.clusterlist[-1]):
+            if self.vb: print ' - Object '+self.currentcl+'_'+str("%.5d" % self.currentobj)+\
+                              ' was the last in the list.\n   Quitting GUI.'
+            self.reset()
+            if self.goodformat:
+                self.quitting = True
+                self.quit_but_cmd()
+        else:
+            if self.objhasHa:
+                self.showingHamaps = True
+                self.updatepstamps(ha=True)
+                self.enableHaboxes(self.cbpos)
+                self.objhasHa = False # resetting Halpha flag
+            else:
+                self.reset()
+                if self.goodformat:
+                    newent = np.where((self.objlist == self.currentobj) & (self.clusterlist == self.currentcl))[0]+1
+                    self.currentobj = self.objlist[newent][0]
+                    self.currentcl  = self.clusterlist[newent][0]
+                    self.openpngs()
+                    self.showingHamaps = False
+
+                    self.labelvar.set(self.infostring())
+                    self.updatepstamps()
+
+                    if self.fitsauto: # loading fits files automatically
+                        if self.xpa:
+                            self.openfits_but_cmd_xpa()
+                        else:
+                            self.openfits_but_cmd()
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def prev_but(self,position):
+        self.prev= Button(self)
+        self.prev["text"] = "(7) Previous object"
+        self.prev["command"] = self.prev_but_cmd
+        self.prev.grid(row=position[0],column=position[1],columnspan=position[2],sticky=W)
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def prev_but_cmd(self):
+        """
+        Command for previous button
+        """
+        self.reset()
+        if self.goodformat:
+            if (self.currentobj == self.objlist[0]) & (self.currentcl == self.clusterlist[0]):
+                if self.vb: print ' - At first object of list...'
+            else:
+                newent = np.where((self.objlist == self.currentobj) & (self.clusterlist == self.currentcl))[0]-1
+                self.currentobj = self.objlist[newent][0]
+                self.currentcl  = self.clusterlist[newent][0]
+                self.openpngs()
+                self.showingHamaps = False
+                self.labelvar.set(self.infostring())
+                self.updatepstamps()
+
+                if self.fitsauto: # loading fits files automatically
+                    if self.xpa:
+                        self.openfits_but_cmd_xpa()
+                    else:
+                        self.openfits_but_cmd()
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def quit_but(self,position):
+        """
+        Set up the quit button
+        """
+        self.QUIT = Button(self)
+        self.QUIT["text"] = "QUIT GiG"
+        self.QUIT["command"] = self.quit_but_cmd
+        self.QUIT.grid(row=position[0],column=position[1],columnspan=position[2],sticky=W)
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def quit_but_cmd(self,skip=False):
+        """
+        Command for quit button
+        """
+        if self.quitting == False: self.reset() # Only reset if quit_but_cmd was activated by quit button
+        if self.goodformat or skip:
+            self.quitting = True
+            self.fout.close()
+            self.closewindows()
+            if self.outcheck: self.checkoutput()
+            self.quit()
+            if self.vb: print ' - Quit GiG successfully'
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def checkoutput(self):
+        """
+        Checking the output to see if it is as expected
+        """
+        data      = np.genfromtxt(self.outfile,comments='#',skip_header=2,names=True)
+        Nobjout   = len(np.unique(data['ID']))
+
+        if self.vb: print ' - OUTPUTCHECK: Found '+str(Nobjout)+' objects in output. '+\
+                          'Input objlist contained '+str(len(self.objlist))+' objects'
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def subtractcontam(self,twodfits):
+        """
+        Subtract continuum from science fram
+        """
+        filename, fileext =  os.path.splitext(twodfits)
+        output = filename+'_SCI-CONTAM'+fileext
+
+        if os.path.isfile(output): # check if file already exists
+            if self.vb: print ' - ',output,' already exists'
+        else:
+            if self.vb: print ' - Create ',output
+            hduimg  = pyfits.open(twodfits) # Load the FITS hdulist
+            hdrsci  = hduimg['SCI'].header    # extracting science header
+            sci     = hduimg['SCI'].data
+            contam  = hduimg['CONTAM'].data
+            pyfits.writeto(output, sci-contam, hdrsci, clobber=False)
+
+        return output
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def keyboard_cmd(self,event):
+        """
+        Commands for keyboard shortcuts
+        """
+        cmd = event.char
+
+        focuson = self.focus_get() # check where the focus is
+        if  (focuson == self.comments):
+            pass
+        else:
+            keycmd    = []
+            keynames  = []
+            keynumber = []
+            for ii, key in enumerate(self.keys):
+                keycmd.append(key[1])
+                keynames.append(key)
+                keynumber.append(ii)
+
+            if cmd in keycmd:
+                thiskey = keynames[int(np.where(np.asarray(cmd) == np.asarray(keycmd))[0])]
+                if cmd in self.sliders:
+                    sliderval = int(self.keys[thiskey].get())
+                    if sliderval == 4:
+                        self.sliderdic[thiskey].set(0)
+                    else:
+                        self.sliderdic[thiskey].set(sliderval+1)
+                elif cmd == 'p':
+                    self.comments.focus_set()
+                elif cmd in self.empty:
+                    pass
+                elif (cmd in self.Haboxes) & (not self.showingHamaps):
+                    pass
+                else:
+                    self.cbdic[thiskey].toggle()
+
+            elif cmd == '0':
+                if self.xpa:
+                    self.openfits_but_cmd_xpa()
+                else:
+                    self.openfits_but_cmd()
+
+            elif cmd == '7':
+                self.prev_but_cmd()
+
+            elif cmd == '8':
+                self.next_but_cmd()
+
+            else:
+                pass
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    def infostring(self):
+        """
+        Return string with information to display in GUI window
+        """
+        objinfo           = vi.get_objinfo(self.infofile,self.currentobj,self.currentcl)
+
+        if objinfo == None:
+            infostr = "--- Currently looking at object "+self.currentcl+'_'+str("%.5d" % int(self.currentobj))+\
+                      ':: Environment = None, redshift = None, mag = None ---'
+        else:
+            infostr = "--- Currently looking at object "+self.currentcl+'_'+str("%.5d" % int(self.currentobj))+\
+                      ':: Environment = '+str(objinfo['environment'][0])+\
+                      ', redshift = '+str(objinfo['redshift'][0])+\
+                      ', '+str(objinfo['mag_band'][0])+'  = '+\
+                      str("%.2f" % objinfo['mag'])+'+/-'+str("%.2f" % objinfo['mag_err'])+' ---'
 
         return infostr
 
